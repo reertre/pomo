@@ -1,9 +1,8 @@
-// Pomodoro.js
-
 import React, { useEffect, useState } from "react";
 import styles from './pomodoro.module.css';
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 import { useRouter } from 'next/router';
+import CountdownTimer from './CountdownTimer'; // Import the CountdownTimer component
 
 function Pomodoro() {
   const [timeRemaining, setTimeRemaining] = useState(25 * 60);
@@ -66,12 +65,13 @@ function Pomodoro() {
           <div className={styles.timerContainer}>
             <h1 className={styles.title}>Pomodoro</h1>
             <div className={styles.circularTimer}>
-              <div className={styles.donut}>
-                <div
-                  className={styles.progress}
-                  style={{ transform: `rotate(${calculateProgress()}deg)` }}
-                ></div>
-              </div>
+              <CountdownTimer
+                seconds={timeRemaining}
+                size={200}
+                strokeBgColor="black"
+                strokeColor="lightgreen"
+                strokeWidth={12}
+              />
               <div className={styles.timerText}>
                 <span>{formatTime(timeRemaining)}</span>
                 {isBreak ? <p>Break</p> : <p>Focus</p>}
