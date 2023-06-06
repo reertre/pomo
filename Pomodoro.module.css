@@ -4,57 +4,59 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 }
 
-.pomodoro {
-  text-align: center;
+.Pomodoro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .timerWrapper {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timerText {
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
-}
-
-.timerCircle {
-  position: relative;
-  width: 200px;
-  height: 200px;
-}
-
-.timerProgress {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  border: 10px solid #eee;
-  stroke-width: 10;
-  stroke-dasharray: 339.292;
-  stroke-dashoffset: 0;
-  transform: rotate(-90deg);
-  transform-origin: center;
-  transition: stroke-dashoffset 1s linear;
-}
-
-.timerText {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
   font-size: 24px;
   font-weight: bold;
 }
 
 .timerControls {
   margin-top: 20px;
-  text-align: center;
+  display: grid;
+  margin-top: 20px;
+  grid-auto-columns: repeat(3, fr);
+  gap: 20px;
+  place-items: center;
 }
 
-.timerControls button {
-  margin-right: 10px;
+/* Add your own styles for Button and ButtonGroup from '@barclays/blueprint-react' as needed */
+
+/* Add the circular animation styles */
+@keyframes circularAnimation {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 100;
+  }
+}
+
+.timerCircle {
+  animation: circularAnimation;
+  animation-duration: ${({ duration }) => duration}s;
+  animation-timing-function: linear;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
 }
