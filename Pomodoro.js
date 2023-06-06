@@ -2,7 +2,86 @@ import React, { useEffect, useState } from "react";
 import styles from './pomodoro.module.css';
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 import { useRouter } from 'next/router';
-import CountdownTimer from './CountdownTimer'; // Import the CountdownTimer component
+
+// CountdownTimer component code
+const CountdownTimer = (props) => {
+  const { seconds, size, strokeBgColor, strokeColor, strokeWidth } = props;
+  const [countdown, setCountdown] = useState(seconds * 1000);
+  const [isPlaying, setPlaying] = useState(false);
+  const radius = size / 2;
+  const circumference = size * Math.PI;
+
+  const strokeDashoffset = () =>
+    circumference - (countdown / (seconds * 1000)) * circumference;
+
+  useEffect(() => {
+    let intervalId;
+
+    if (isPlaying && countdown > 0) {
+      intervalId = setInterval(() => {
+        setCountdown((prevTime) => prevTime - 10);
+      }, 10);
+    } else if (isPlaying && countdown === 0) {
+      clearInterval(intervalId);
+      setCountdown(seconds * 1000);
+      setPlaying(false);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [isPlaying, countdown, seconds]);
+
+  const startTimer = () => {
+    setPlaying(true);
+  };
+
+  const stopTimer = () => {
+    setPlaying(false);
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60000);
+    const seconds = Math.floor((time % 60000) / 1000);
+
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div>
+      <div>
+        <button
+          className={styles.button}
+          onClick={!isPlaying ? startTimer : () => {}}
+        >
+          START
+        </button>
+      </div>
+      <div className={styles.countdownContainer}>
+        <p className={styles.textStyles}>{formatTime(countdown)}</p>
+        <svg className={styles.svg}>
+          <circle
+            cx={radius}
+            cy={radius}
+            r={radius}
+            fill="none"
+            stroke={strokeBgColor}
+            strokeWidth={strokeWidth}
+          ></circle>
+          <circle
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset()}
+            r={radius}
+            cx={radius}
+            cy={radius}
+            fill="none"
+            strokeLinecap="round"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+          ></circle>
+        </svg>
+      </div>
+    </div>
+  );
+};
 
 function Pomodoro() {
   const [timeRemaining, setTimeRemaining] = useState(25 * 60);
