@@ -54,34 +54,38 @@ function Pomodoro() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const calculateProgress = () => {
+    const progress = ((25 * 60 - timeRemaining) / (25 * 60)) * 100;
+    return progress > 100 ? 100 : progress;
+  };
+
   return (
     <div className='pomodoroPage'>
       <section>
         <Section>
-          <div className={styles.dWvsAf}>
-            <h1 className={styles.container}>Pomodoro</h1>
-          </div>
-          <div className={styles.krmWQa}>
-            <div>
-              <div className={styles.circularTimer}>
-                <div className={styles.donut}>
-                  <div className={styles.progress} style={{ transform: `rotate(${((timeRemaining / (25 * 60)) * 360) - 360}deg)` }}></div>
-                </div>
-                <div className={styles.timerText}>
-                  <span>{formatTime(timeRemaining)}</span>
-                  {isBreak ? <p>Break</p> : <p>Focus</p>}
-                </div>
+          <div className={styles.timerContainer}>
+            <h1 className={styles.title}>Pomodoro</h1>
+            <div className={styles.circularTimer}>
+              <div className={styles.donut}>
+                <div
+                  className={styles.progress}
+                  style={{ transform: `rotate(${calculateProgress()}deg)` }}
+                ></div>
               </div>
-              <div className={styles.timerControls}>
-                <Button className={styles.timerButton} onClick={startTimer}>Start</Button>
-                <Button className={styles.timerButton} onClick={stopTimer}>Stop</Button>
-                <Button className={styles.timerButton} onClick={resetTimer}>Reset</Button>
+              <div className={styles.timerText}>
+                <span>{formatTime(timeRemaining)}</span>
+                {isBreak ? <p>Break</p> : <p>Focus</p>}
               </div>
             </div>
-            <ButtonGroup>
-              <Button onClick={() => router.replace('/')}>Back to Home</Button>
-            </ButtonGroup>
+            <div className={styles.timerControls}>
+              <Button className={styles.timerButton} onClick={startTimer}>Start</Button>
+              <Button className={styles.timerButton} onClick={stopTimer}>Stop</Button>
+              <Button className={styles.timerButton} onClick={resetTimer}>Reset</Button>
+            </div>
           </div>
+          <ButtonGroup>
+            <Button onClick={() => router.replace('/')}>Back to Home</Button>
+          </ButtonGroup>
         </Section>
       </section>
     </div>
