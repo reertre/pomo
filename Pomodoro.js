@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from './pomodoro.module.css';
-import { Section, Hero, Button, Type, Modal, ButtonGroup } from '@barclays/blueprint-react';
+import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 import { useRouter } from 'next/router';
 
 function Pomodoro() {
@@ -52,27 +52,33 @@ function Pomodoro() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const calculateProgress = () => {
+    const progress = (timeRemaining / (25 * 60)) * 100;
+    return progress.toFixed(2);
+  };
+
   return (
-    <div className='pomodoroPage'>
-      <section>
-        <Section>
-          <div className={styles.dWvsAf}>
-            <h1 className={styles.container}>Pomodoro</h1>
-          </div>
-          <div className={styles.krmWQa}>
-            <div>
+    <div className={styles.pomodoroPage}>
+      <Section>
+        <div className={styles.timerContainer}>
+          <h1 className={styles.title}>Pomodoro</h1>
+          <div className={styles.circularTimer}>
+            <div className={styles.progressBar} style={{ strokeDashoffset: `calc(440 - (440 * ${calculateProgress()}) / 100)` }}></div>
+            <div className={styles.timerText}>
               <span>{formatTime(timeRemaining)}</span>
               {isBreak ? <p>Break</p> : <p>Focus</p>}
-              <button className={styles.timerButton} onClick={startTimer}>Start</button>
-              <button className={styles.timerButton} onClick={stopTimer}>Stop</button>
-              <button className={styles.timerButton} onClick={resetTimer}>Reset</button>
             </div>
-            <ButtonGroup>
-              <Button onClick={() => router.replace('/')}>Back to Home</Button>
-            </ButtonGroup>
           </div>
-        </Section>
-      </section>
+          <div className={styles.timerControls}>
+            <button className={styles.timerButton} onClick={startTimer}>Start</button>
+            <button className={styles.timerButton} onClick={stopTimer}>Stop</button>
+            <button className={styles.timerButton} onClick={resetTimer}>Reset</button>
+          </div>
+          <ButtonGroup>
+            <Button onClick={() => router.replace('/')}>Back to Home</Button>
+          </ButtonGroup>
+        </div>
+      </Section>
     </div>
   );
 }
