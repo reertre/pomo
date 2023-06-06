@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { CountdownCircleTimer } from "react-countdown-circle-timer";
 import styles from "./pomodoro.module.css";
+import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 
 const Pomodoro = () => {
-  const [timeRemaining, setTimeRemaining] = useState(25 * 60);
+  const [timeRemaining, setTimeRemaining] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
 
@@ -16,7 +16,7 @@ const Pomodoro = () => {
   };
 
   const resetTimer = () => {
-    setTimeRemaining(25 * 60);
+    setTimeRemaining(60);
     setTimerRunning(false);
     setIsBreak(false);
   };
@@ -26,11 +26,6 @@ const Pomodoro = () => {
     const seconds = time % 60;
 
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
-
-  const calculateProgress = () => {
-    const progress = ((25 * 60 - timeRemaining) / (25 * 60)) * 100;
-    return progress > 100 ? 100 : progress;
   };
 
   useEffect(() => {
@@ -44,10 +39,10 @@ const Pomodoro = () => {
       clearInterval(intervalId);
 
       if (!isBreak) {
-        setTimeRemaining(5 * 60);
+        setTimeRemaining(60);
         setIsBreak(true);
       } else {
-        setTimeRemaining(25 * 60);
+        setTimeRemaining(60);
         setIsBreak(false);
       }
     }
@@ -61,43 +56,36 @@ const Pomodoro = () => {
     }
 
     return (
-      <div className={styles.timerCircle}>
-        <div
-          className={styles.timerProgress}
-          style={{ strokeDashoffset: ((100 - calculateProgress()) / 100) * 339.292 }}
-        ></div>
-        <div className={styles.timerText}>
-          <span>{formatTime(timeRemaining)}</span>
-          {isBreak ? <p>Break</p> : <p>Focus</p>}
-        </div>
+      <div className={styles.timerText}>
+        <span>{formatTime(timeRemaining)}</span>
+        {isBreak ? <p>Break</p> : <p>Focus</p>}
       </div>
     );
   };
 
   return (
     <div className={styles.pomodoroPage}>
-      <div className={styles.pomodoro}>
-        <h1>Pomodoro</h1>
-        <div className={styles.timerWrapper}>
-          <CountdownCircleTimer
-            isPlaying={timerRunning}
-            duration={timeRemaining}
-            colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
-            onComplete={() => {
-              setTimerRunning(false);
-              setTimeRemaining(25 * 60);
-              setIsBreak(!isBreak);
-            }}
-          >
-            {renderTime}
-          </CountdownCircleTimer>
-        </div>
-      </div>
-      <div className={styles.timerControls}>
-        <button onClick={startTimer}>Start</button>
-        <button onClick={stopTimer}>Stop</button>
-        <button onClick={resetTimer}>Reset</button>
-      </div>
+      <section>
+        <Section>
+          <section>
+            <div className={styles.Pomodoro}>
+              <h1>Pomodoro</h1>
+              <div className={styles.timerWrapper}>
+                <div className={`${styles.timerCircle} ${timerRunning ? styles.timerRunning : ""}`} />
+                {renderTime({ remainingTime: timeRemaining })}
+              </div>
+            </div>
+          </section>
+
+          <div className={styles.timerControls}>
+            <ButtonGroup>
+              <Button onClick={startTimer}>Start</Button>
+              <Button onClick={stopTimer}>Stop</Button>
+              <Button onClick={resetTimer}>Reset</Button>
+            </ButtonGroup>
+          </div>
+        </Section>
+      </section>
     </div>
   );
 };
