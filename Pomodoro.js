@@ -25,7 +25,7 @@ const Pomodoro = () => {
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
 
-    return `${minutes.toString().padStart(2, 0)}:${seconds.toString().padStart(2, 0)}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const calculateProgress = () => {
@@ -57,48 +57,50 @@ const Pomodoro = () => {
 
   const renderTime = ({ remainingTime }) => {
     if (remainingTime === 0) {
-      return <div className="timer">Too lale...</div>;
+      return <div className={styles.timer}>Too late...</div>;
     }
 
     return (
-      <div className="timer">
-        <div className="text">Remaining</div>
-        <div className="value">{remainingTime}</div>
-        <div className="text">seconds</div>
+      <div className={styles.timer}>
+        <div className={styles.text}>Remaining</div>
+        <div className={styles.value}>{remainingTime}</div>
+        <div className={styles.text}>seconds</div>
       </div>
     );
   };
 
   return (
-    <div className="pomodoro">
-      <div className="timer">
-        <h1>Pomodoro</h1>
-        <div className="timer-circle">
-          <div className="timer-progress" style={{ width: calculateProgress() + "%" }}></div>
-          <div className="timer-text">
-            <span>{formatTime(timeRemaining)}</span>
-            {isBreak ? <p>Break</p> : <p>Focus</p>}
+    <div className={styles.container}>
+      <div className={styles.pomodoro}>
+        <div className={styles.timer}>
+          <h1>Pomodoro</h1>
+          <div className={styles.timerCircle}>
+            <div className={styles.timerProgress} style={{ width: calculateProgress() + "%" }}></div>
+            <div className={styles.timerText}>
+              <span>{formatTime(timeRemaining)}</span>
+              {isBreak ? <p>Break</p> : <p>Focus</p>}
+            </div>
+          </div>
+          <div className={styles.timerControls}>
+            <button onClick={startTimer}>Start</button>
+            <button onClick={stopTimer}>Stop</button>
+            <button onClick={resetTimer}>Reset</button>
           </div>
         </div>
-        <div className="timer-controls">
-          <button onClick={startTimer}>Start</button>
-          <button onClick={stopTimer}>Stop</button>
-          <button onClick={resetTimer}>Reset</button>
+        <div className={styles.timerWrapper}>
+          <CountdownCircleTimer
+            isPlaying={timerRunning}
+            duration={timeRemaining}
+            colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
+            onComplete={() => {
+              setTimerRunning(false);
+              setTimeRemaining(25 * 60);
+              setIsBreak(!isBreak);
+            }}
+          >
+            {renderTime}
+          </CountdownCircleTimer>
         </div>
-      </div>
-      <div className="timer-wrapper">
-        <CountdownCircleTimer
-          isPlaying={timerRunning}
-          duration={timeRemaining}
-          colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
-          onComplete={() => {
-            setTimerRunning(false);
-            setTimeRemaining(25 * 60);
-            setIsBreak(!isBreak);
-          }}
-        >
-          {renderTime}
-        </CountdownCircleTimer>
       </div>
     </div>
   );
