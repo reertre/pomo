@@ -61,41 +61,43 @@ const Pomodoro = () => {
     }
 
     return (
-      <div className={styles.timer}>
-        <div className={styles.timerCircle}>
-          <div className={styles.timerProgress} style={{ width: calculateProgress() + "%" }}></div>
-          <div className={styles.timerText}>
-            <span>{formatTime(timeRemaining)}</span>
-            {isBreak ? <p>Break</p> : <p>Focus</p>}
-          </div>
-        </div>
+      <div className={styles.timerText}>
+        <span>{formatTime(timeRemaining)}</span>
+        {isBreak ? <p>Break</p> : <p>Focus</p>}
       </div>
     );
   };
 
   return (
-    <div className={styles.container}>
-      <section className={styles.pomodoro}>
-        <h1>Pomodoro</h1>
-        <div className={styles.timerWrapper}>
-          <CountdownCircleTimer
-            isPlaying={timerRunning}
-            duration={timeRemaining}
-            colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
-            onComplete={() => {
-              setTimerRunning(false);
-              setTimeRemaining(25 * 60);
-              setIsBreak(!isBreak);
-            }}
-          >
-            {renderTime}
-          </CountdownCircleTimer>
+    <div className={styles.pomodoroPage}>
+      <section className={styles.wrapperBg}>
+        <div className={styles.container}>
+          <section className={styles.donutSection}>
+            <h1 className={styles.pomodoroTitle}>Pomodoro</h1>
+            <div className={styles.timerWrapper}>
+              <CountdownCircleTimer
+                isPlaying={timerRunning}
+                duration={timeRemaining}
+                colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
+                onComplete={() => {
+                  setTimerRunning(false);
+                  setTimeRemaining(25 * 60);
+                  setIsBreak(!isBreak);
+                }}
+              >
+                {renderTime}
+              </CountdownCircleTimer>
+            </div>
+          </section>
+
+          <section className={styles.buttonSection}>
+            <div className={styles.timerControls}>
+              <button onClick={startTimer}>Start</button>
+              <button onClick={stopTimer}>Stop</button>
+              <button onClick={resetTimer}>Reset</button>
+            </div>
+          </section>
         </div>
-      </section>
-      <section className={styles.controls}>
-        <button onClick={startTimer}>Start</button>
-        <button onClick={stopTimer}>Stop</button>
-        <button onClick={resetTimer}>Reset</button>
       </section>
     </div>
   );
