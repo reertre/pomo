@@ -1,18 +1,15 @@
 /* pomodoro.module.css */
 
-.pomodoroPage {
+.timerContainer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
 }
 
-.timerContainer {
-  text-align: center;
-}
-
 .title {
-  font-size: 24px;
+  font-size: 32px;
   margin-bottom: 20px;
 }
 
@@ -20,58 +17,63 @@
   position: relative;
   width: 200px;
   height: 200px;
-  margin: 0 auto;
+  margin-bottom: 20px;
+}
+
+.donut {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: lightgreen;
+  clip: rect(0, 100px, 100px, 50px); /* Adjust clip values based on progress */
+  transform-origin: center center;
+  transform: rotate(0deg);
+  transition: transform 0.3s linear;
 }
 
 .timerText {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  font-size: 24px;
-  font-weight: bold;
 }
 
 .timerText span {
   font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
 .timerText p {
-  margin-top: 10px;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .timerControls {
+  display: flex;
+  gap: 10px;
   margin-top: 20px;
 }
 
 .timerButton {
-  margin-right: 10px;
+  padding: 8px 20px;
 }
 
-.donut {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background-color: #eaeaea;
-  position: relative;
-  overflow: hidden;
+/* Additional styles for the Pomodoro component */
+
+.pomodoroPage {
+  background-color: #f5f5f5;
+  padding: 20px;
 }
 
-.progress {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  background-color: #ff4f4f;
-  transform-origin: center center;
-  transition: transform 0.3s ease-in-out;
-}
-
-/* Add your own styles for Button and ButtonGroup from '@barclays/blueprint-react' as needed */
