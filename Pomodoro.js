@@ -62,9 +62,6 @@ const Pomodoro = () => {
 
     return (
       <div className={styles.timer}>
-        <button onClick={startTimer}>Start</button>
-        <button onClick={stopTimer}>Stop</button>
-        <button onClick={resetTimer}>Reset</button>
         <div className={styles.timerCircle}>
           <div className={styles.timerProgress} style={{ width: calculateProgress() + "%" }}></div>
           <div className={styles.timerText}>
@@ -72,6 +69,9 @@ const Pomodoro = () => {
             {isBreak ? <p>Break</p> : <p>Focus</p>}
           </div>
         </div>
+        <button onClick={startTimer}>Start</button>
+        <button onClick={stopTimer}>Stop</button>
+        <button onClick={resetTimer}>Reset</button>
       </div>
     );
   };
@@ -79,11 +79,7 @@ const Pomodoro = () => {
   return (
     <div className={styles.container}>
       <div className={styles.pomodoro}>
-        <div className={styles.timer}>
-          <h1>Pomodoro</h1>
-         
-          </div>
-        </div>
+        <h1 style={{marginTop: "20px"}}>Pomodoro</h1>
         <div className={styles.timerWrapper}>
           <CountdownCircleTimer
             isPlaying={timerRunning}
