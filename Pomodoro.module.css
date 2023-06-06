@@ -32,13 +32,14 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  width: 0%;
   height: 100%;
   border-radius: 50%;
   border: 12px solid #8bc34a;
   border-top-color: transparent;
   border-right-color: transparent;
   transform-origin: center center;
+  transition: width 1s linear;
 }
 
 .timerText {
