@@ -69,9 +69,11 @@ const Pomodoro = () => {
             {isBreak ? <p>Break</p> : <p>Focus</p>}
           </div>
         </div>
-        <button onClick={startTimer}>Start</button>
-        <button onClick={stopTimer}>Stop</button>
-        <button onClick={resetTimer}>Reset</button>
+        <div className={styles.timerControls}>
+          <button onClick={startTimer}>Start</button>
+          <button onClick={stopTimer}>Stop</button>
+          <button onClick={resetTimer}>Reset</button>
+        </div>
       </div>
     );
   };
@@ -79,7 +81,7 @@ const Pomodoro = () => {
   return (
     <div className={styles.container}>
       <div className={styles.pomodoro}>
-        <h1 style={{marginTop: "20px"}}>Pomodoro</h1>
+        <h1 style={{ marginTop: "20px" }}>Pomodoro</h1>
         <div className={styles.timerWrapper}>
           <CountdownCircleTimer
             isPlaying={timerRunning}
