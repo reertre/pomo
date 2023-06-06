@@ -62,9 +62,16 @@ const Pomodoro = () => {
 
     return (
       <div className={styles.timer}>
-        <div className={styles.text}>Remaining</div>
-        <div className={styles.value}>{remainingTime}</div>
-        <div className={styles.text}>seconds</div>
+        <button onClick={startTimer}>Start</button>
+        <button onClick={stopTimer}>Stop</button>
+        <button onClick={resetTimer}>Reset</button>
+        <div className={styles.timerCircle}>
+          <div className={styles.timerProgress} style={{ width: calculateProgress() + "%" }}></div>
+          <div className={styles.timerText}>
+            <span>{formatTime(timeRemaining)}</span>
+            {isBreak ? <p>Break</p> : <p>Focus</p>}
+          </div>
+        </div>
       </div>
     );
   };
@@ -74,17 +81,7 @@ const Pomodoro = () => {
       <div className={styles.pomodoro}>
         <div className={styles.timer}>
           <h1>Pomodoro</h1>
-          <div className={styles.timerCircle}>
-            <div className={styles.timerProgress} style={{ width: calculateProgress() + "%" }}></div>
-            <div className={styles.timerText}>
-              <span>{formatTime(timeRemaining)}</span>
-              {isBreak ? <p>Break</p> : <p>Focus</p>}
-            </div>
-          </div>
-          <div className={styles.timerControls}>
-            <button onClick={startTimer}>Start</button>
-            <button onClick={stopTimer}>Stop</button>
-            <button onClick={resetTimer}>Reset</button>
+         
           </div>
         </div>
         <div className={styles.timerWrapper}>
