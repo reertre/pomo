@@ -50,24 +50,36 @@ const Pomodoro = () => {
     );
   };
 
-  const sidebarContent = (
-    <div>
-      <h2>Sidebar</h2>
-      <ul>
-        <li>Menu Item 1</li>
-        <li>Menu Item 2</li>
-        <li>Menu Item 3</li>
-      </ul>
-    </div>
-  );
+  const menuItems = [
+    { label: "Menu Item 1", onClick: () => console.log("Menu Item 1 clicked") },
+    { label: "Menu Item 2", onClick: () => console.log("Menu Item 2 clicked") },
+    { label: "Menu Item 3", onClick: () => console.log("Menu Item 3 clicked") },
+  ];
 
   return (
     <div className={styles.pomodoroPage}>
       <Sidebar
-        sidebar={sidebarContent}
+        sidebar={
+          <Menu
+            menuItemStyles={{
+              button: ({ level, active, disabled }) => {
+                if (level === 0) {
+                  return {
+                    color: disabled ? "#f5d9ff" : "#d359ff",
+                    backgroundColor: active ? "#eecef9" : undefined,
+                  };
+                }
+              },
+            }}
+            items={menuItems}
+          />
+        }
         open={isSidebarOpen}
         onSetOpen={setSidebarOpen}
-        styles={{ sidebar: { background: "#f5f5f5", width: "20%" } }}
+        styles={{
+          sidebar: { background: "#f5f5f5", width: "200px", padding: "10px" },
+          overlay: { zIndex: 999 },
+        }}
       >
         <Section>
           <Button onClick={() => setSidebarOpen(true)}>Open Sidebar</Button>
