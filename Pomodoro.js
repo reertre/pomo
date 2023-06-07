@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styles from "./pomodoro.module.css";
-import { Section, Button, ButtonGroup } from "@barclays/blueprint-react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
+import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 
 const Pomodoro = () => {
-  const [timeRemaining, setTimeRemaining] = useState(60);
+  const [timeRemaining, setTimeRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
 
@@ -18,7 +18,7 @@ const Pomodoro = () => {
   };
 
   const resetTimer = () => {
-    setTimeRemaining(60);
+    setTimeRemaining(25 * 60);
     setTimerRunning(false);
     setIsBreak(false);
   };
@@ -31,7 +31,7 @@ const Pomodoro = () => {
   };
 
   const calculateProgress = () => {
-    const progress = ((60 - timeRemaining) / 60) * 100;
+    const progress = ((25 * 60 - timeRemaining) / (25 * 60)) * 100;
     return progress > 100 ? 100 : progress;
   };
 
@@ -46,10 +46,10 @@ const Pomodoro = () => {
       clearInterval(intervalId);
 
       if (!isBreak) {
-        setTimeRemaining(60);
+        setTimeRemaining(5 * 60);
         setIsBreak(true);
       } else {
-        setTimeRemaining(60);
+        setTimeRemaining(25 * 60);
         setIsBreak(false);
       }
     }
@@ -57,39 +57,39 @@ const Pomodoro = () => {
     return () => clearInterval(intervalId);
   }, [timerRunning, timeRemaining, isBreak]);
 
+  const renderTime = ({ remainingTime }) => {
+    if (remainingTime === 0) {
+      return <div className={styles.timer}>Too late...</div>;
+    }
+
+    return (
+      <div className={styles.timerText}>
+        <span>{formatTime(timeRemaining)}</span>
+        {isBreak ? <p>Break</p> : <p>Focus</p>}
+      </div>
+    );
+  };
+
   return (
     <div className={styles.pomodoroPage}>
-      <section>
-        <Section>
-          <section>
-            <div className={styles.Pomodoro}>
-              <h1>Pomodoro</h1>
-              <div className={styles.timerWrapper}>
-                <CircularProgressbar
-                  value={calculateProgress()}
-                  text={formatTime(timeRemaining)}
-                  strokeWidth={10}
-                  styles={{
-                    root: { width: "100%", height: "100%" },
-                    path: { stroke: "#004777" },
-                    trail: { stroke: "#f7f7f7" },
-                    text: { fill: "#fff", fontSize: "24px", fontWeight: "bold" },
-                  }}
-                />
-              </div>
-            </div>
-          </section>
-        </Section>
-
-        <div className={styles.timerControls}>
-          <ButtonGroup>
-            <button onClick={startTimer}>Start</button>
-            <button onClick={stopTimer}>Stop</button>
-            <button onClick={resetTimer}>Reset</button>
-          </ButtonGroup>
+      <Section>
+        <div className={styles.timerWrapper}>
+          <CircularProgressbar
+            value={calculateProgress()}
+            text={formatTime(timeRemaining)}
+            strokeWidth={10}
+          />
+          {renderTime({ remainingTime: timeRemaining })}
         </div>
-        <Section></Section>
-      </section>
+      </Section>
+
+      <div className={styles.timerControls}>
+        <ButtonGroup>
+          <Button onClick={startTimer}>Start</Button>
+          <Button onClick={stopTimer}>Stop</Button>
+          <Button onClick={resetTimer}>Reset</Button>
+        </ButtonGroup>
+      </div>
     </div>
   );
 };
