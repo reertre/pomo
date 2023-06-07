@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
-import { push as Menu } from "react-burger-menu";
+import { slide as Menu } from "react-burger-menu";
 import { Section, Button, ButtonGroup } from "@barclays/blueprint-react";
 import styles from "./pomodoro.module.css";
 import Link from "next/link";
@@ -74,7 +74,36 @@ const Pomodoro = () => {
 
   return (
     <div className={styles.pomodoroPage}>
-      <Menu width={"200px"} styles={{ bmBurgerButton: { display: "none" } }}>
+      <Menu
+        width={"200px"}
+        disableAutoFocus
+        customBurgerIcon={false}
+        styles={{
+          bmBurgerButton: {
+            display: "none"
+          },
+          bmMenu: {
+            background: "white",
+            padding: "1rem",
+            boxShadow: "0 0 10px rgba(0, 0, 0, 0.2)",
+            overflow: "hidden",
+            width: "200px",
+            marginTop: "20px",
+          },
+          bmItemList: {
+            color: "black",
+            padding: "0",
+            margin: "0",
+          },
+          bmItem: {
+            display: "block",
+            marginTop: "10px",
+          },
+          bmOverlay: {
+            background: "rgba(0, 0, 0, 0.3)",
+          },
+        }}
+      >
         <Link href="/">
           <a className={styles.menuItem}>Timer</a>
         </Link>
