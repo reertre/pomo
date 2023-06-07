@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
 import styles from "./pomodoro.module.css";
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 
 const Pomodoro = () => {
-  const [timeRemaining, setTimeRemaining] = useState(60);
+  const [timeRemaining, setTimeRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
 
@@ -16,7 +18,7 @@ const Pomodoro = () => {
   };
 
   const resetTimer = () => {
-    setTimeRemaining(60);
+    setTimeRemaining(25 * 60);
     setTimerRunning(false);
     setIsBreak(false);
   };
@@ -39,10 +41,10 @@ const Pomodoro = () => {
       clearInterval(intervalId);
 
       if (!isBreak) {
-        setTimeRemaining(60);
+        setTimeRemaining(5 * 60);
         setIsBreak(true);
       } else {
-        setTimeRemaining(60);
+        setTimeRemaining(25 * 60);
         setIsBreak(false);
       }
     }
@@ -63,29 +65,38 @@ const Pomodoro = () => {
     );
   };
 
+  const progress = (25 * 60 - timeRemaining) / (25 * 60) * 100;
+
   return (
     <div className={styles.pomodoroPage}>
-      <section>
-        <Section>
-          <section>
-            <div className={styles.Pomodoro}>
-              <h1>Pomodoro</h1>
-              <div className={styles.timerWrapper}>
-                <div className={`${styles.timerCircle} ${timerRunning ? styles.timerRunning : ""}`} />
-                {renderTime({ remainingTime: timeRemaining })}
+      <Section>
+        <section>
+          <div className={styles.Pomodoro}>
+            <h1 styles={{ marginTop: "20px", padding: "20px" }}>Pomodoro</h1>
+            <div className={styles.timerWrapper}>
+              <div className={styles.timerCircle}>
+                <CircularProgressbar
+                  value={progress}
+                  text={formatTime(timeRemaining)}
+                  styles={buildStyles({
+                    textColor: "#fff",
+                    pathColor: "#004777",
+                    trailColor: "#f0f0f0",
+                  })}
+                />
               </div>
             </div>
-          </section>
-
-          <div className={styles.timerControls}>
-            <ButtonGroup>
-              <Button onClick={startTimer}>Start</Button>
-              <Button onClick={stopTimer}>Stop</Button>
-              <Button onClick={resetTimer}>Reset</Button>
-            </ButtonGroup>
           </div>
-        </Section>
-      </section>
+        </section>
+
+        <div className={styles.timerControls}>
+          <ButtonGroup>
+            <button onClick={startTimer}>Start</button>
+            <button onClick={stopTimer}>Stop</button>
+            <button onClick={resetTimer}>Reset</button>
+          </ButtonGroup>
+        </div>
+      </Section>
     </div>
   );
 };
