@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { CircularProgressbar } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
+import React, { useState, useEffect } from "react";
+import { CircularProgressbar } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+import { ProSidebar, Menu, MenuItem, SidebarHeader } from "react-pro-sidebar";
+import "react-pro-sidebar/dist/css/styles.css";
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
-import { Sidebar, Menu, MenuItem } from 'react-pro-sidebar';
-import 'react-pro-sidebar/dist/css/styles.css';
-import './pomodoro.css';
+import styles from "./pomodoro.module.css";
+
+const SidebarContent = () => {
+  return (
+    <Menu iconShape="square">
+      <MenuItem>Timer</MenuItem>
+      <MenuItem>Stats</MenuItem>
+      <MenuItem>Settings</MenuItem>
+    </Menu>
+  );
+};
 
 const Pomodoro = () => {
   const [timeRemaining, setTimeRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const startTimer = () => {
     setTimerRunning(true);
@@ -30,7 +39,7 @@ const Pomodoro = () => {
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
 
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const calculateProgress = () => {
@@ -62,11 +71,11 @@ const Pomodoro = () => {
 
   const renderTime = ({ remainingTime }) => {
     if (remainingTime === 0) {
-      return <div className="timer">Too late...</div>;
+      return <div className={styles.timer}>Too late...</div>;
     }
 
     return (
-      <div className="timerText">
+      <div className={styles.timerText}>
         <span>{formatTime(timeRemaining)}</span>
         {isBreak ? <p>Break</p> : <p>Focus</p>}
       </div>
@@ -74,20 +83,23 @@ const Pomodoro = () => {
   };
 
   return (
-    <div className="pomodoroPage">
-      <Sidebar>
-        <Menu>
-          <MenuItem>Timer</MenuItem>
-          <MenuItem>Stats</MenuItem>
-          <MenuItem>Settings</MenuItem>
-        </Menu>
-      </Sidebar>
+    <div className={styles.pomodoroPage}>
+      <ProSidebar>
+        <SidebarHeader>
+          <h2>Menu</h2>
+        </SidebarHeader>
+        <SidebarContent />
+      </ProSidebar>
 
       <Section>
         <section>
           <h1>Pomodoro</h1>
-          <div className="timerWrapper">
-            <CircularProgressbar value={calculateProgress()} text={formatTime(timeRemaining)} strokeWidth={10} />
+          <div className={styles.timerWrapper}>
+            <CircularProgressbar
+              value={calculateProgress()}
+              text={formatTime(timeRemaining)}
+              strokeWidth={10}
+            />
           </div>
           {renderTime({ remainingTime: timeRemaining })}
         </section>
@@ -95,7 +107,7 @@ const Pomodoro = () => {
 
       <Section>
         <section>
-          <div className="timerControls">
+          <div className={styles.timerControls}>
             <ButtonGroup>
               <Button onClick={startTimer}>Start</Button>
               <Button onClick={stopTimer}>Stop</Button>
