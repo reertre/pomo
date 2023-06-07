@@ -1,15 +1,28 @@
-import React, { useState } from "react";
-import styles from "./pomodoro.module.css";
+import React, { useState, useEffect } from "react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import Sidebar from "react-sidebar";
-import { Section, Button, ButtonGroup } from "@barclays/blueprint-react";
+import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
+import styles from "./pomodoro.module.css";
+
+const SidebarContent = () => {
+  return (
+    <div>
+      <h2>Menu</h2>
+      <ul>
+        <li>Timer</li>
+        <li>Stats</li>
+        <li>Settings</li>
+      </ul>
+    </div>
+  );
+};
 
 const Pomodoro = () => {
   const [timeRemaining, setTimeRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const startTimer = () => {
     setTimerRunning(true);
@@ -37,6 +50,28 @@ const Pomodoro = () => {
     return progress > 100 ? 100 : progress;
   };
 
+  useEffect(() => {
+    let intervalId;
+
+    if (timerRunning && timeRemaining > 0) {
+      intervalId = setInterval(() => {
+        setTimeRemaining((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timerRunning && timeRemaining === 0) {
+      clearInterval(intervalId);
+
+      if (!isBreak) {
+        setTimeRemaining(5 * 60);
+        setIsBreak(true);
+      } else {
+        setTimeRemaining(25 * 60);
+        setIsBreak(false);
+      }
+    }
+
+    return () => clearInterval(intervalId);
+  }, [timerRunning, timeRemaining, isBreak]);
+
   const renderTime = ({ remainingTime }) => {
     if (remainingTime === 0) {
       return <div className={styles.timer}>Too late...</div>;
@@ -50,51 +85,32 @@ const Pomodoro = () => {
     );
   };
 
-  const menuItems = [
-    { label: "Menu Item 1", onClick: () => console.log("Menu Item 1 clicked") },
-    { label: "Menu Item 2", onClick: () => console.log("Menu Item 2 clicked") },
-    { label: "Menu Item 3", onClick: () => console.log("Menu Item 3 clicked") },
-  ];
-
   return (
     <div className={styles.pomodoroPage}>
       <Sidebar
-        sidebar={
-          <Menu
-            menuItemStyles={{
-              button: ({ level, active, disabled }) => {
-                if (level === 0) {
-                  return {
-                    color: disabled ? "#f5d9ff" : "#d359ff",
-                    backgroundColor: active ? "#eecef9" : undefined,
-                  };
-                }
-              },
-            }}
-            items={menuItems}
-          />
-        }
-        open={isSidebarOpen}
+        sidebar={<SidebarContent />}
+        open={sidebarOpen}
         onSetOpen={setSidebarOpen}
-        styles={{
-          sidebar: { background: "#f5f5f5", width: "200px", padding: "10px" },
-          overlay: { zIndex: 999 },
-        }}
+        styles={{ sidebar: { background: "white", width: "200px" } }}
       >
-        <Section>
-          <Button onClick={() => setSidebarOpen(true)}>Open Sidebar</Button>
+        <button onClick={() => setSidebarOpen(true)}>Open Sidebar</button>
 
-          <div className={styles.mainContent}>
-            <h1 style={{ marginTop: "20px", padding: "10px" }}>Pomodoro</h1>
+        <Section>
+          <section>
+            <h1>Pomodoro</h1>
             <div className={styles.timerWrapper}>
               <CircularProgressbar
                 value={calculateProgress()}
                 text={formatTime(timeRemaining)}
                 strokeWidth={10}
               />
-              {renderTime({ remainingTime: timeRemaining })}
             </div>
+            {renderTime({ remainingTime: timeRemaining })}
+          </section>
+        </Section>
 
+        <Section>
+          <section>
             <div className={styles.timerControls}>
               <ButtonGroup>
                 <Button onClick={startTimer}>Start</Button>
@@ -102,7 +118,7 @@ const Pomodoro = () => {
                 <Button onClick={resetTimer}>Reset</Button>
               </ButtonGroup>
             </div>
-          </div>
+          </section>
         </Section>
       </Sidebar>
     </div>
