@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import "react-circular-progressbar/dist/styles.css";
 import styles from "./pomodoro.module.css";
-import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
+import { Section, Button, ButtonGroup } from "@barclays/blueprint-react";
+import { CircularProgressbar } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
 
 const Pomodoro = () => {
-  const [timeRemaining, setTimeRemaining] = useState(25 * 60);
+  const [timeRemaining, setTimeRemaining] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
 
@@ -18,7 +18,7 @@ const Pomodoro = () => {
   };
 
   const resetTimer = () => {
-    setTimeRemaining(25 * 60);
+    setTimeRemaining(60);
     setTimerRunning(false);
     setIsBreak(false);
   };
@@ -28,6 +28,11 @@ const Pomodoro = () => {
     const seconds = time % 60;
 
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const calculateProgress = () => {
+    const progress = ((60 - timeRemaining) / 60) * 100;
+    return progress > 100 ? 100 : progress;
   };
 
   useEffect(() => {
@@ -41,10 +46,10 @@ const Pomodoro = () => {
       clearInterval(intervalId);
 
       if (!isBreak) {
-        setTimeRemaining(5 * 60);
+        setTimeRemaining(60);
         setIsBreak(true);
       } else {
-        setTimeRemaining(25 * 60);
+        setTimeRemaining(60);
         setIsBreak(false);
       }
     }
@@ -52,42 +57,29 @@ const Pomodoro = () => {
     return () => clearInterval(intervalId);
   }, [timerRunning, timeRemaining, isBreak]);
 
-  const renderTime = ({ remainingTime }) => {
-    if (remainingTime === 0) {
-      return <div className={styles.timer}>Too late...</div>;
-    }
-
-    return (
-      <div className={styles.timerText}>
-        <span>{formatTime(timeRemaining)}</span>
-        {isBreak ? <p>Break</p> : <p>Focus</p>}
-      </div>
-    );
-  };
-
-  const progress = (25 * 60 - timeRemaining) / (25 * 60) * 100;
-
   return (
     <div className={styles.pomodoroPage}>
-      <Section>
-        <section>
-          <div className={styles.Pomodoro}>
-            <h1 styles={{ marginTop: "20px", padding: "20px" }}>Pomodoro</h1>
-            <div className={styles.timerWrapper}>
-              <div className={styles.timerCircle}>
+      <section>
+        <Section>
+          <section>
+            <div className={styles.Pomodoro}>
+              <h1>Pomodoro</h1>
+              <div className={styles.timerWrapper}>
                 <CircularProgressbar
-                  value={progress}
+                  value={calculateProgress()}
                   text={formatTime(timeRemaining)}
-                  styles={buildStyles({
-                    textColor: "#fff",
-                    pathColor: "#004777",
-                    trailColor: "#f0f0f0",
-                  })}
+                  strokeWidth={10}
+                  styles={{
+                    root: { width: "100%", height: "100%" },
+                    path: { stroke: "#004777" },
+                    trail: { stroke: "#f7f7f7" },
+                    text: { fill: "#fff", fontSize: "24px", fontWeight: "bold" },
+                  }}
                 />
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </Section>
 
         <div className={styles.timerControls}>
           <ButtonGroup>
@@ -96,7 +88,8 @@ const Pomodoro = () => {
             <button onClick={resetTimer}>Reset</button>
           </ButtonGroup>
         </div>
-      </Section>
+        <Section></Section>
+      </section>
     </div>
   );
 };
