@@ -1,5 +1,3 @@
-/* pomodoro.module.css */
-
 .pomodoroPage {
   display: flex;
   justify-content: center;
@@ -13,47 +11,43 @@
 }
 
 .timerWrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   position: relative;
+  width: 200px;
+  height: 200px;
 }
 
 .timerCircle {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  position: relative;
-  overflow: hidden;
-}
-
-.timerRunning {
-  animation: circularAnimation ${({ duration }) => duration}s linear;
-}
-
-@keyframes circularAnimation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .timerText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
 }
 
 .timerControls {
   margin-top: 20px;
   display: grid;
-  margin-top: 20px;
   grid-auto-columns: repeat(3, fr);
   gap: 20px;
   place-items: center;
 }
+
+/* Add your own styles for Button and ButtonGroup from '@barclays/blueprint-react' as needed */
