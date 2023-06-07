@@ -90,37 +90,9 @@ const Pomodoro = () => {
   return (
     <div className={styles.pomodoroPage}>
       <Menu
+        className={styles.sidebar}
         pageWrapId={"page-wrap"}
         outerContainerId={"outer-container"}
-        customBurgerIcon={false}
-        customCrossIcon={false}
-        width={200}
-        styles={{
-          bmBurgerButton: {
-            display: "none",
-          },
-          bmCrossButton: {
-            display: "none",
-          },
-          bmMenuWrap: {
-            position: "fixed",
-            height: "100%",
-          },
-          bmMenu: {
-            background: "white",
-            padding: "2.5em 1.5em 0",
-            fontSize: "1.15em",
-          },
-          bmItemList: {
-            color: "#b8b7ad",
-            padding: "0.8em",
-          },
-          bmOverlay: {
-            background: "rgba(0, 0, 0, 0.3)",
-          },
-        }}
-        disableOverlayClick
-        isOpen
       >
         <SidebarContent />
       </Menu>
