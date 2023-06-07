@@ -1,28 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { CircularProgressbar } from "react-circular-progressbar";
-import "react-circular-progressbar/dist/styles.css";
-import Sidebar from "react-sidebar";
+import React, { useState, useEffect } from 'react';
+import { CircularProgressbar } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
-import styles from "./pomodoro.module.css";
-
-const SidebarContent = () => {
-  return (
-    <div>
-      <h2>Menu</h2>
-      <ul>
-        <li>Timer</li>
-        <li>Stats</li>
-        <li>Settings</li>
-      </ul>
-    </div>
-  );
-};
+import { Sidebar, Menu, MenuItem } from 'react-pro-sidebar';
+import 'react-pro-sidebar/dist/css/styles.css';
+import './pomodoro.css';
 
 const Pomodoro = () => {
   const [timeRemaining, setTimeRemaining] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const startTimer = () => {
     setTimerRunning(true);
@@ -42,7 +30,7 @@ const Pomodoro = () => {
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
 
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const calculateProgress = () => {
@@ -74,11 +62,11 @@ const Pomodoro = () => {
 
   const renderTime = ({ remainingTime }) => {
     if (remainingTime === 0) {
-      return <div className={styles.timer}>Too late...</div>;
+      return <div className="timer">Too late...</div>;
     }
 
     return (
-      <div className={styles.timerText}>
+      <div className="timerText">
         <span>{formatTime(timeRemaining)}</span>
         {isBreak ? <p>Break</p> : <p>Focus</p>}
       </div>
@@ -86,41 +74,36 @@ const Pomodoro = () => {
   };
 
   return (
-    <div className={styles.pomodoroPage}>
-      <Sidebar
-        sidebar={<SidebarContent />}
-        open={sidebarOpen}
-        onSetOpen={setSidebarOpen}
-        styles={{ sidebar: { background: "white", width: "200px" } }}
-      >
-        <button onClick={() => setSidebarOpen(true)}>Open Sidebar</button>
-
-        <Section>
-          <section>
-            <h1>Pomodoro</h1>
-            <div className={styles.timerWrapper}>
-              <CircularProgressbar
-                value={calculateProgress()}
-                text={formatTime(timeRemaining)}
-                strokeWidth={10}
-              />
-            </div>
-            {renderTime({ remainingTime: timeRemaining })}
-          </section>
-        </Section>
-
-        <Section>
-          <section>
-            <div className={styles.timerControls}>
-              <ButtonGroup>
-                <Button onClick={startTimer}>Start</Button>
-                <Button onClick={stopTimer}>Stop</Button>
-                <Button onClick={resetTimer}>Reset</Button>
-              </ButtonGroup>
-            </div>
-          </section>
-        </Section>
+    <div className="pomodoroPage">
+      <Sidebar>
+        <Menu>
+          <MenuItem>Timer</MenuItem>
+          <MenuItem>Stats</MenuItem>
+          <MenuItem>Settings</MenuItem>
+        </Menu>
       </Sidebar>
+
+      <Section>
+        <section>
+          <h1>Pomodoro</h1>
+          <div className="timerWrapper">
+            <CircularProgressbar value={calculateProgress()} text={formatTime(timeRemaining)} strokeWidth={10} />
+          </div>
+          {renderTime({ remainingTime: timeRemaining })}
+        </section>
+      </Section>
+
+      <Section>
+        <section>
+          <div className="timerControls">
+            <ButtonGroup>
+              <Button onClick={startTimer}>Start</Button>
+              <Button onClick={stopTimer}>Stop</Button>
+              <Button onClick={resetTimer}>Reset</Button>
+            </ButtonGroup>
+          </div>
+        </section>
+      </Section>
     </div>
   );
 };
