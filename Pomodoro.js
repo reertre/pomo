@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
-import { ProSidebar, Menu, MenuItem, SidebarHeader } from "react-pro-sidebar";
-import "react-pro-sidebar/dist/css/styles.css";
+import { slide as Menu } from "react-burger-menu";
 import { Section, Button, ButtonGroup } from '@barclays/blueprint-react';
 import styles from "./pomodoro.module.css";
 
 const SidebarContent = () => {
   return (
-    <Menu iconShape="square">
-      <MenuItem>Timer</MenuItem>
-      <MenuItem>Stats</MenuItem>
-      <MenuItem>Settings</MenuItem>
+    <Menu>
+      <a className="menu-item" href="/">
+        Timer
+      </a>
+      <a className="menu-item" href="/">
+        Stats
+      </a>
+      <a className="menu-item" href="/">
+        Settings
+      </a>
     </Menu>
   );
 };
@@ -84,38 +89,43 @@ const Pomodoro = () => {
 
   return (
     <div className={styles.pomodoroPage}>
-      <ProSidebar>
-        <SidebarHeader>
-          <h2>Menu</h2>
-        </SidebarHeader>
-        <SidebarContent />
-      </ProSidebar>
+      <Sidebar
+        sidebar={<SidebarContent />}
+        docked={true}
+        styles={{
+          sidebar: {
+            background: "white",
+            width: "200px",
+            marginTop: "20px",
+          },
+        }}
+      >
+        <Section>
+          <section>
+            <h1>Pomodoro</h1>
+            <div className={styles.timerWrapper}>
+              <CircularProgressbar
+                value={calculateProgress()}
+                text={formatTime(timeRemaining)}
+                strokeWidth={10}
+              />
+            </div>
+            {renderTime({ remainingTime: timeRemaining })}
+          </section>
+        </Section>
 
-      <Section>
-        <section>
-          <h1>Pomodoro</h1>
-          <div className={styles.timerWrapper}>
-            <CircularProgressbar
-              value={calculateProgress()}
-              text={formatTime(timeRemaining)}
-              strokeWidth={10}
-            />
-          </div>
-          {renderTime({ remainingTime: timeRemaining })}
-        </section>
-      </Section>
-
-      <Section>
-        <section>
-          <div className={styles.timerControls}>
-            <ButtonGroup>
-              <Button onClick={startTimer}>Start</Button>
-              <Button onClick={stopTimer}>Stop</Button>
-              <Button onClick={resetTimer}>Reset</Button>
-            </ButtonGroup>
-          </div>
-        </section>
-      </Section>
+        <Section>
+          <section>
+            <div className={styles.timerControls}>
+              <ButtonGroup>
+                <Button onClick={startTimer}>Start</Button>
+                <Button onClick={stopTimer}>Stop</Button>
+                <Button onClick={resetTimer}>Reset</Button>
+              </ButtonGroup>
+            </div>
+          </section>
+        </Section>
+      </Sidebar>
     </div>
   );
 };
