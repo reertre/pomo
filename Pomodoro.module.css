@@ -1,37 +1,66 @@
-/* pomodoro.module.css */
-.pomodoroPage {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.sidebar {
+  background: #ffffff;
+  width: 250px;
   height: 100vh;
-}
-
-.timerWrapper {
-  position: relative;
-  width: 200px;
-  height: 200px;
-}
-
-.timerText {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 10px;
+  justifyContent: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transition: 350ms;
 }
 
-.timerControls {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+.sidebar.open {
+  left: 0;
 }
-.menuItem {
-  display: block;
-  margin-top: 10px;
-  color: black;
+
+.sidebar.closed {
+  left: -100%;
+}
+
+.sidebar ul {
+
+
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin-bottom: 10px;
+}
+
+.sidebar li a {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 15px;
+  margin: 10px 0;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
   text-decoration: none;
+  text-color: #182efd;
+  border: none;
+  border-radius: 5px;
+  transition: 0.2s;
 }
 
-.timerControls button {
-  margin-right: 1rem;
+.btn:hover {
+  background-color: #19aef8;
 }
 
+.btn-primary {
+  color: #0c7ffa;
+}
+
+.btn-secondary {
+  color: #0c7ffa;
+}
+
+.btn-success {
+  color: #0c7ffa;
+}
