@@ -21,3 +21,26 @@
   font-weight: bold;
   margin-bottom: 5px;
 }
+
+/* Customize the track color */
+.rc-slider-track {
+  background-color: #2D27DC;
+}
+
+/* Customize the handle color */
+.rc-slider-handle {
+  background-color: #2D27DC;
+  border-color: #2D27DC;
+}
+
+/* Customize the color on hover */
+.rc-slider-handle:hover {
+  background-color: #211CA6;
+  border-color: #211CA6;
+}
+
+/* Customize the color when active (being dragged) */
+.rc-slider-handle:active {
+  background-color: #150F54;
+  border-color: #150F54;
+}
