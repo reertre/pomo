@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box, Slider, Typography } from '@mui/material';
+npm install @mui/material @emotion/react @emotion/styled
+
 
 const SliderSettings = () => {
   const marks = [
