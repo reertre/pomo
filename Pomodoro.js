@@ -1,87 +1,102 @@
 import React from 'react';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
+import { Box, Slider, Typography } from '@mui/material';
 
-const Settings = () => {
-  const style = { width: 400, margin: 'auto' };
-  const marks = {
-    5: '5 mins',
-    60: '60 mins',
-  };
+const SliderSettings = () => {
+  const marks = [
+    { value: 5, label: '5 mins' },
+    { value: 60, label: '60 mins' },
+  ];
 
-  const handleWorkDurationChange = (value) => {
+  const handleWorkDurationChange = (event, value) => {
     console.log('Work Duration:', value);
   };
 
-  const handleShortBreakDurationChange = (value) => {
+  const handleShortBreakDurationChange = (event, value) => {
     console.log('Short Break Duration:', value);
   };
 
-  const handleLongBreakDurationChange = (value) => {
+  const handleLongBreakDurationChange = (event, value) => {
     console.log('Long Break Duration:', value);
   };
 
-  const handleRoundsChange = (value) => {
+  const handleRoundsChange = (event, value) => {
     console.log('Rounds:', value);
   };
 
-  const railStyle = {
-    backgroundColor: '#2D27DC', // Change to the desired color
-    height: '6px',
-    borderRadius: '3px',
+  const sliderStyles = {
+    color: '#2D27DC',
+    '& .MuiSlider-rail': {
+      backgroundColor: '#2D27DC',
+    },
+    '& .MuiSlider-track': {
+      backgroundColor: '#2D27DC',
+    },
+    '& .MuiSlider-thumb': {
+      backgroundColor: '#2D27DC',
+    },
   };
 
   return (
-    <div style={style}>
+    <Box
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+      height="100vh"
+    >
       <div>
-        <p>Work Duration</p>
+        <Typography variant="h6">Work Duration</Typography>
         <Slider
           min={5}
           max={60}
+          step={1}
           marks={marks}
           onChange={handleWorkDurationChange}
           defaultValue={25}
-          railStyle={railStyle}
+          sx={sliderStyles}
         />
       </div>
 
       <div>
-        <p>Short Break Duration</p>
+        <Typography variant="h6">Short Break Duration</Typography>
         <Slider
           min={1}
           max={30}
+          step={1}
           marks={marks}
           onChange={handleShortBreakDurationChange}
           defaultValue={10}
-          railStyle={railStyle}
+          sx={sliderStyles}
         />
       </div>
 
       <div>
-        <p>Long Break Duration</p>
+        <Typography variant="h6">Long Break Duration</Typography>
         <Slider
           min={1}
           max={45}
+          step={1}
           marks={marks}
           onChange={handleLongBreakDurationChange}
           defaultValue={20}
-          railStyle={railStyle}
+          sx={sliderStyles}
         />
       </div>
 
       <div>
-        <p>Rounds</p>
+        <Typography variant="h6">Rounds</Typography>
         <Slider
           min={2}
           max={15}
+          step={1}
           marks={marks}
           onChange={handleRoundsChange}
           defaultValue={5}
-          railStyle={railStyle}
+          sx={sliderStyles}
         />
       </div>
-    </div>
+    </Box>
   );
 };
 
-export default Settings;
+export default SliderSettings;
