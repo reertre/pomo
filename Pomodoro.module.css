@@ -1,66 +1,40 @@
-.sidebar {
-  background: #ffffff;
-  width: 250px;
-  height: 100vh;
+.centered-sliders {
   display: flex;
-  justifyContent: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  transition: 350ms;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-.sidebar.open {
-  left: 0;
+.slider {
+  width: 80%;
+  margin-bottom: 20px;
 }
 
-.sidebar.closed {
-  left: -100%;
-}
-
-.sidebar ul {
-
-
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar li {
+.slider h2 {
   margin-bottom: 10px;
 }
 
-.sidebar li a {
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
+.slider input[type="range"] {
+  width: 100%;
+  height: 10px;
+  -webkit-appearance: none;
+  background-color: #ccc;
+  outline: none;
 }
 
-.btn {
-  display: inline-block;
-  padding: 10px 15px;
-  margin: 10px 0;
-  font-size: 16px;
-  font-weight: bold;
-  text-align: center;
-  text-decoration: none;
-  text-color: #182efd;
-  border: none;
-  border-radius: 5px;
-  transition: 0.2s;
+.slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background-color: #4CAF50;
+  cursor: pointer;
 }
 
-.btn:hover {
-  background-color: #19aef8;
-}
-
-.btn-primary {
-  color: #0c7ffa;
-}
-
-.btn-secondary {
-  color: #0c7ffa;
-}
-
-.btn-success {
-  color: #0c7ffa;
+.slider input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background-color: #4CAF50;
+  cursor: pointer;
 }
