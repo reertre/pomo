@@ -1,127 +1,66 @@
-import React, { useState } from "react";
-import Sidebar from "react-sidebar";
-import "./Navbar.css";
+import React, { useState } from 'react';
 
-const SidebarContent = ({ setPage }) => {
-  return (
-    <div className={styles.navMenu}>
-      <ul className={styles.navMenuItems}>
-        <li className={styles.navText}>
-          <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setPage("timer")}>
-            Timer
-          </button>
-        </li>
-        <li className={styles.navText}>
-          <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => setPage("settings")}>
-            Settings
-          </button>
-        </li>
-        <li className={styles.navText}>
-          <button className={`${styles.btn} ${styles.btnSuccess}`}>Statistics</button>
-        </li>
-      </ul>
-    </div>
-  );
-};
+const CenteredSliders = () => {
+  const [workDuration, setWorkDuration] = useState(5);
+  const [shortBreakDuration, setShortBreakDuration] = useState(1);
+  const [longBreakDuration, setLongBreakDuration] = useState(1);
+  const [rounds, setRounds] = useState(2);
 
-const TimerPage = () => {
-  return (
-    <div>
-      <h1>Pomodoro</h1>
-      {/* Timer and circular progress bar content */}
-    </div>
-  );
-};
-
-const SettingsPage = () => {
-  return (
-    <div>
-      <h1>Settings</h1>
-      {/* Only the settings content */}
-    </div>
-  );
-};
-
-const App = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activePage, setActivePage] = useState("timer");
-
-  const onSetSidebarOpen = (open) => {
-    setSidebarOpen(open);
+  const handleWorkDurationChange = (event) => {
+    setWorkDuration(parseInt(event.target.value));
   };
 
-  const renderPage = () => {
-    if (activePage === "timer") {
-      return <TimerPage />;
-    } else if (activePage === "settings") {
-      return <SettingsPage />;
-    }
-    // Add more conditions for other pages
+  const handleShortBreakDurationChange = (event) => {
+    setShortBreakDuration(parseInt(event.target.value));
+  };
+
+  const handleLongBreakDurationChange = (event) => {
+    setLongBreakDuration(parseInt(event.target.value));
+  };
+
+  const handleRoundsChange = (event) => {
+    setRounds(parseInt(event.target.value));
   };
 
   return (
-    <Sidebar
-      sidebar={<SidebarContent setPage={setActivePage} />}
-      open={sidebarOpen}
-      onSetOpen={onSetSidebarOpen}
-      docked={true}
-      styles={{
-        sidebar: {
-          background: "#fffff",
-          width: "250px",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          position: "fixed",
-          top: 0,
-          left: sidebarOpen ? "0" : "-100%",
-          transition: "350ms",
-        },
-        content: {
-          marginLeft: "250px",
-        },
-      }}
-    >
-      <div className={styles.pomodoroPage}>
-        {activePage === "timer" && (
-          <Section>
-            <section>
-              <section>
-                <div>
-                  <h1>Pomodoro</h1>
-                  <div className={styles.timerWrapper}>
-                    <CircularProgressbar
-                      value={calculateProgress()}
-                      text={formatTime(timeRemaining)}
-                      strokeWidth={10}
-                    />
+    <div style={{ textAlign: 'center' }}>
+      <h2>Work Duration: {workDuration} mins</h2>
+      <input
+        type="range"
+        min="5"
+        max="60"
+        value={workDuration}
+        onChange={handleWorkDurationChange}
+      />
 
-                    {renderTime({ remainingTime: timeRemaining })}
-                  </div>
-                </div>
-              </section>
-            </section>
+      <h2>Short Break Duration: {shortBreakDuration} mins</h2>
+      <input
+        type="range"
+        min="1"
+        max="30"
+        value={shortBreakDuration}
+        onChange={handleShortBreakDurationChange}
+      />
 
-            <section>
-              <div className={styles.timerControls}>
-                <ButtonGroup>
-                  <Button onClick={startTimer}>Start</Button>
-                  <Button onClick={stopTimer}>Stop</Button>
-                  <Button onClick={resetTimer}>Reset</Button>
-                </ButtonGroup>
-              </div>
-            </section>
-          </Section>
-        )}
+      <h2>Long Break Duration: {longBreakDuration} mins</h2>
+      <input
+        type="range"
+        min="1"
+        max="45"
+        value={longBreakDuration}
+        onChange={handleLongBreakDurationChange}
+      />
 
-        {activePage === "settings" && (
-          <Section>
-            <SettingsPage />
-          </Section>
-        )}
-      </div>
-    </Sidebar>
+      <h2>Rounds: {rounds}</h2>
+      <input
+        type="range"
+        min="2"
+        max="15"
+        value={rounds}
+        onChange={handleRoundsChange}
+      />
+    </div>
   );
 };
 
-export default App;
+export default CenteredSliders;
