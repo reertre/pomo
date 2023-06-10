@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Slider, Typography, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Box, Slider, Typography, FormControl, InputLabel, MenuItem, Select, Switch } from '@mui/material';
 import './SliderSettings.css';
 
 const SliderSettings = () => {
@@ -30,6 +30,18 @@ const SliderSettings = () => {
 
   const handleWeekStartsOnChange = (event) => {
     console.log('Week Starts On:', event.target.value);
+  };
+
+  const handleTimerSwitchChange = (event) => {
+    console.log('Timer Switch:', event.target.checked);
+  };
+
+  const handleNotificationSwitchChange = (event) => {
+    console.log('Notification Switch:', event.target.checked);
+  };
+
+  const handleAutoStartSwitchChange = (event) => {
+    console.log('Auto Start Switch:', event.target.checked);
   };
 
   return (
@@ -105,10 +117,10 @@ const SliderSettings = () => {
 
       <div className="dropdown-container">
         <FormControl fullWidth>
-          <InputLabel id="week-starts-label">Week Starts On</InputLabel>
+          <InputLabel id="week-starts-on-label">Week Starts On</InputLabel>
           <Select
-            labelId="week-starts-label"
-            id="week-starts-select"
+            labelId="week-starts-on-label"
+            id="week-starts-on-select"
             onChange={handleWeekStartsOnChange}
           >
             <MenuItem value="sunday">Sunday</MenuItem>
@@ -116,6 +128,21 @@ const SliderSettings = () => {
             <MenuItem value="tuesday">Tuesday</MenuItem>
           </Select>
         </FormControl>
+      </div>
+
+      <div className="switch-container">
+        <Typography variant="h6">Timer</Typography>
+        <Switch onChange={handleTimerSwitchChange} defaultChecked />
+      </div>
+
+      <div className="switch-container">
+        <Typography variant="h6">Notification</Typography>
+        <Switch onChange={handleNotificationSwitchChange} />
+      </div>
+
+      <div className="switch-container">
+        <Typography variant="h6">Auto Start</Typography>
+        <Switch onChange={handleAutoStartSwitchChange} />
       </div>
     </Box>
   );
