@@ -1,151 +1,28 @@
 import React from 'react';
-import { Box, Slider, Typography, FormControl, InputLabel, MenuItem, Select, Switch } from '@mui/material';
-import './SliderSettings.css';
+import Chart from 'react-apexcharts';
 
-const SliderSettings = () => {
-  const marks = [
-    { value: 5, label: '5 mins' },
-    { value: 60, label: '60 mins' },
-  ];
-
-  const handleWorkDurationChange = (event, value) => {
-    console.log('Work Duration:', value);
-  };
-
-  const handleShortBreakDurationChange = (event, value) => {
-    console.log('Short Break Duration:', value);
-  };
-
-  const handleLongBreakDurationChange = (event, value) => {
-    console.log('Long Break Duration:', value);
-  };
-
-  const handleRoundsChange = (event, value) => {
-    console.log('Rounds:', value);
-  };
-
-  const handleNotificationSoundChange = (event) => {
-    console.log('Notification Sound:', event.target.value);
-  };
-
-  const handleWeekStartsOnChange = (event) => {
-    console.log('Week Starts On:', event.target.value);
-  };
-
-  const handleTimerSwitchChange = (event) => {
-    console.log('Timer Switch:', event.target.checked);
-  };
-
-  const handleNotificationSwitchChange = (event) => {
-    console.log('Notification Switch:', event.target.checked);
-  };
-
-  const handleAutoStartSwitchChange = (event) => {
-    console.log('Auto Start Switch:', event.target.checked);
+const DonutChart = () => {
+  // Define the chart options and data
+  const chartOptions = {
+    series: [44, 55, 13, 33],
+    options: {
+      chart: {
+        type: 'donut',
+      },
+      labels: ['Label 1', 'Label 2', 'Label 3', 'Label 4'],
+    },
   };
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="center"
-      height="100vh"
-    >
-      <div className="slider-container">
-        <Typography variant="h6">Work Duration</Typography>
-        <Slider
-          min={5}
-          max={60}
-          step={1}
-          marks={marks}
-          onChange={handleWorkDurationChange}
-          defaultValue={25}
-        />
-      </div>
-
-      <div className="slider-container">
-        <Typography variant="h6">Short Break Duration</Typography>
-        <Slider
-          min={1}
-          max={30}
-          step={1}
-          marks={marks}
-          onChange={handleShortBreakDurationChange}
-          defaultValue={10}
-        />
-      </div>
-
-      <div className="slider-container">
-        <Typography variant="h6">Long Break Duration</Typography>
-        <Slider
-          min={1}
-          max={45}
-          step={1}
-          marks={marks}
-          onChange={handleLongBreakDurationChange}
-          defaultValue={20}
-        />
-      </div>
-
-      <div className="slider-container">
-        <Typography variant="h6">Rounds</Typography>
-        <Slider
-          min={2}
-          max={15}
-          step={1}
-          marks={marks}
-          onChange={handleRoundsChange}
-          defaultValue={5}
-        />
-      </div>
-
-      <div className="dropdown-container">
-        <FormControl fullWidth>
-          <InputLabel id="notification-sound-label">Notification Sound</InputLabel>
-          <Select
-            labelId="notification-sound-label"
-            id="notification-sound-select"
-            onChange={handleNotificationSoundChange}
-          >
-            <MenuItem value="sound1">Sound 1</MenuItem>
-            <MenuItem value="sound2">Sound 2</MenuItem>
-            <MenuItem value="sound3">Sound 3</MenuItem>
-          </Select>
-        </FormControl>
-      </div>
-
-      <div className="dropdown-container">
-        <FormControl fullWidth>
-          <InputLabel id="week-starts-on-label">Week Starts On</InputLabel>
-          <Select
-            labelId="week-starts-on-label"
-            id="week-starts-on-select"
-            onChange={handleWeekStartsOnChange}
-          >
-            <MenuItem value="sunday">Sunday</MenuItem>
-            <MenuItem value="monday">Monday</MenuItem>
-            <MenuItem value="tuesday">Tuesday</MenuItem>
-          </Select>
-        </FormControl>
-      </div>
-
-      <div className="switch-container">
-        <Typography variant="h6">Timer</Typography>
-        <Switch onChange={handleTimerSwitchChange} defaultChecked />
-      </div>
-
-      <div className="switch-container">
-        <Typography variant="h6">Notification</Typography>
-        <Switch onChange={handleNotificationSwitchChange} />
-      </div>
-
-      <div className="switch-container">
-        <Typography variant="h6">Auto Start</Typography>
-        <Switch onChange={handleAutoStartSwitchChange} />
-      </div>
-    </Box>
+    <div>
+      <Chart
+        options={chartOptions.options}
+        series={chartOptions.series}
+        type="donut"
+        width="380"
+      />
+    </div>
   );
 };
 
-export default SliderSettings;
+export default DonutChart;
