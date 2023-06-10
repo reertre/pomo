@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Slider, Typography } from '@mui/material';
-npm install @mui/material @emotion/react @emotion/styled
-
+import { Box, Slider, Typography, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import './SliderSettings.css';
 
 const SliderSettings = () => {
   const marks = [
@@ -25,17 +24,12 @@ const SliderSettings = () => {
     console.log('Rounds:', value);
   };
 
-  const sliderStyles = {
-    color: '#2D27DC',
-    '& .MuiSlider-rail': {
-      backgroundColor: '#2D27DC',
-    },
-    '& .MuiSlider-track': {
-      backgroundColor: '#2D27DC',
-    },
-    '& .MuiSlider-thumb': {
-      backgroundColor: '#2D27DC',
-    },
+  const handleNotificationSoundChange = (event) => {
+    console.log('Notification Sound:', event.target.value);
+  };
+
+  const handleWeekStartsOnChange = (event) => {
+    console.log('Week Starts On:', event.target.value);
   };
 
   return (
@@ -46,7 +40,7 @@ const SliderSettings = () => {
       alignItems="center"
       height="100vh"
     >
-      <div>
+      <div className="slider-container">
         <Typography variant="h6">Work Duration</Typography>
         <Slider
           min={5}
@@ -55,11 +49,10 @@ const SliderSettings = () => {
           marks={marks}
           onChange={handleWorkDurationChange}
           defaultValue={25}
-          sx={sliderStyles}
         />
       </div>
 
-      <div>
+      <div className="slider-container">
         <Typography variant="h6">Short Break Duration</Typography>
         <Slider
           min={1}
@@ -68,11 +61,10 @@ const SliderSettings = () => {
           marks={marks}
           onChange={handleShortBreakDurationChange}
           defaultValue={10}
-          sx={sliderStyles}
         />
       </div>
 
-      <div>
+      <div className="slider-container">
         <Typography variant="h6">Long Break Duration</Typography>
         <Slider
           min={1}
@@ -81,11 +73,10 @@ const SliderSettings = () => {
           marks={marks}
           onChange={handleLongBreakDurationChange}
           defaultValue={20}
-          sx={sliderStyles}
         />
       </div>
 
-      <div>
+      <div className="slider-container">
         <Typography variant="h6">Rounds</Typography>
         <Slider
           min={2}
@@ -94,8 +85,37 @@ const SliderSettings = () => {
           marks={marks}
           onChange={handleRoundsChange}
           defaultValue={5}
-          sx={sliderStyles}
         />
+      </div>
+
+      <div className="dropdown-container">
+        <FormControl fullWidth>
+          <InputLabel id="notification-sound-label">Notification Sound</InputLabel>
+          <Select
+            labelId="notification-sound-label"
+            id="notification-sound-select"
+            onChange={handleNotificationSoundChange}
+          >
+            <MenuItem value="sound1">Sound 1</MenuItem>
+            <MenuItem value="sound2">Sound 2</MenuItem>
+            <MenuItem value="sound3">Sound 3</MenuItem>
+          </Select>
+        </FormControl>
+      </div>
+
+      <div className="dropdown-container">
+        <FormControl fullWidth>
+          <InputLabel id="week-starts-label">Week Starts On</InputLabel>
+          <Select
+            labelId="week-starts-label"
+            id="week-starts-select"
+            onChange={handleWeekStartsOnChange}
+          >
+            <MenuItem value="sunday">Sunday</MenuItem>
+            <MenuItem value="monday">Monday</MenuItem>
+            <MenuItem value="tuesday">Tuesday</MenuItem>
+          </Select>
+        </FormControl>
       </div>
     </Box>
   );
