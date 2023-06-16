@@ -1,30 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { CircularProgressbar } from "react-circular-progressbar";
-import { Section, Button, ButtonGroup, SectionItem, Grid, GridCol } from "@barclays/blueprint-react";
-import styles from "../../pages/pomodoro/pomodoro.module.css";
-import { FaPause, FaPlay } from 'react-icons/fa';
-import { RxReset } from 'react-icons/rx';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Modal from '@mui/material/Modal';
+import styles from "./pomodoro.module.css";
 
-const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 400,
-  bgcolor: 'background.paper',
-  border: '2px solid #000',
-  boxShadow: 24,
-  p: 4,
-};
-
-function Timer() {
-  const [timeRemaining, setTimeRemaining] = useState(5);
+const Pomodoro = () => {
+  const [focusTimeRemaining, setFocusTimeRemaining] = useState(25 * 60);
+  const [breakTimeRemaining, setBreakTimeRemaining] = useState(5 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showCards, setShowCards] = useState(false);
+  const [showCard, setShowCard] = useState(1);
 
   const startTimer = () => {
     setTimerRunning(true);
@@ -35,9 +18,12 @@ function Timer() {
   };
 
   const resetTimer = () => {
-    setTimeRemaining(5);
+    setFocusTimeRemaining(25 * 60);
+    setBreakTimeRemaining(5 * 60);
     setTimerRunning(false);
     setIsBreak(false);
+    setShowCards(false);
+    setShowCard(1);
   };
 
   const formatTime = (time) => {
@@ -47,111 +33,83 @@ function Timer() {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const calculateProgress = () => {
-    const progress = (timeRemaining / (25 * 60)) * 100;
-    return progress > 0 ? progress : 0;
-  };
-
   useEffect(() => {
     let intervalId;
 
-    if (timerRunning && timeRemaining > 0) {
+    if (timerRunning && focusTimeRemaining > 0) {
       intervalId = setInterval(() => {
-        setTimeRemaining((prevTime) => prevTime - 1);
+        setFocusTimeRemaining((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timerRunning && timeRemaining === 0) {
+    } else if (timerRunning && focusTimeRemaining === 0) {
       clearInterval(intervalId);
 
       if (!isBreak) {
-        setShowModal(true);
+        setBreakTimeRemaining(5 * 60);
         setIsBreak(true);
+        setShowCards(true);
       } else {
-        setTimeRemaining(60);
+        setFocusTimeRemaining(25 * 60);
         setIsBreak(false);
+        setShowCards(false);
+        setShowCard(1);
       }
     }
 
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [timerRunning, timeRemaining, isBreak]);
+    return () => clearInterval(intervalId);
+  }, [timerRunning, focusTimeRemaining, isBreak]);
 
-  const renderTime = ({ remainingTime }) => {
-    if (remainingTime === 0) {
+  useEffect(() => {
+    if (showCards) {
+      const timer = setTimeout(() => {
+        setShowCard((prevCard) => (prevCard === 3 ? 1 : prevCard + 1));
+      }, 3000); // Change to the desired duration in milliseconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [showCards]);
+
+  const renderCardsSection = () => {
+    if (!timerRunning && focusTimeRemaining === 0 && isBreak && showCards) {
+      const cards = [
+        { id: 1, content: 'Content 1' },
+        { id: 2, content: 'Content 2' },
+        { id: 3, content: 'Content 3' }
+      ];
+
       return (
-        <div className={styles.timer}>
-          <span>{formatTime(timeRemaining)}</span>
-          {isBreak ? <h1>Break</h1> : <h1>Focus</h1>}
-        </div>
+        <section>
+          <div className={styles.cardsSection}>
+            <h2>Cards Section</h2>
+            <div className={styles.cardContainer}>
+              {cards.map((card) => (
+                <div
+                  key={card.id}
+                  className={`${styles.card} ${showCard === card.id ? styles.show : ""}`}
+                >
+                  <div className={styles.cardContent}>
+                    <h3>Card {card.id}</h3>
+                    <p>{card.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       );
     }
-
-    return <div className={styles.timerText}></div>;
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
+    return null;
   };
 
   return (
     <div className={styles.pomodoroPage}>
-      <Section className={styles.main}>
-        <SectionItem>
-          <div className={styles.pomodoroPage}>
-            <h1 style={{ marginTop: "30px", padding: "10px", textSize: "60px" }}>Focus</h1>
-
-            <div className={styles.timerWrapper}>
-              <Grid>
-                <Grid.Col>
-                  <CircularProgressbar
-                    value={calculateProgress()}
-                    text={formatTime(timeRemaining)}
-                    strokeWidth={8}
-                    styles={{
-                      path: {
-                        stroke: "#2D27DC",
-                      },
-                    }}
-                  />
-                  {renderTime({ remainingTime: timeRemaining })}
-                </Grid.Col>
-              </Grid>
-            </div>
-          </div>
-        </SectionItem>
-
-        <SectionItem>
-          <div className={styles.timerControls}>
-            <Grid>
-              <Grid.Col>
-                <ButtonGroup>
-                  <button onClick={startTimer} className={styles.start}><FaPlay className={styles.icons}></FaPlay></button>
-                  <button onClick={stopTimer} className={styles.start}><FaPause className={styles.icons}></FaPause></button>
-                  <button onClick={resetTimer} className={styles.start}><RxReset className={styles.icons}></RxReset></button>
-                </ButtonGroup>
-              </Grid.Col>
-            </Grid>
-          </div>
-        </SectionItem>
-      </Section>
-
-      <Modal
-        open={showModal}
-        onClose={handleModalClose}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-      >
-        <Box sx={modalStyle}>
-          <Typography id="modal-modal-title" variant="h6" component="h2">
-            Take a break!
-          </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            It's time for a break. Relax and recharge.
-          </Typography>
-        </Box>
-      </Modal>
+      <section>
+        <div className={styles.Pomodoro}>
+          <h1 styles={{ marginTop: "20px", padding: "20px" }}>Pomodoro</h1>
+        </div>
+      </section>
+      {renderCardsSection()}
     </div>
   );
-}
+};
 
-export default Timer;
+export default Pomodoro;
