@@ -102,7 +102,7 @@ const Pomodoro = () => {
           <button onClick={resetTimer}>Reset</button>
         </div>
       </section>
-      {!isBreak && timeRemaining === 0 && <CardContent />}
+      {(!isBreak && timeRemaining === 0) || (timerMode !== "pomo" && timeRemaining === 0) ? (
     </div>
   );
 };
