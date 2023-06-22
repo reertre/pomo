@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styles from "./pomodoro.module.css";
+import { CountdownCircleTimer } from "react-countdown-circle-timer";
+import Controls from "./Controls";
+import CardContent from "./CardContent";
 
 const Pomodoro = () => {
-  const [focusTimeRemaining, setFocusTimeRemaining] = useState(25 * 60);
-  const [breakTimeRemaining, setBreakTimeRemaining] = useState(5 * 60);
+  const [timeRemaining, setTimeRemaining] = useState(6 * 60); // 6 minutes
   const [timerRunning, setTimerRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [showCards, setShowCards] = useState(false);
-  const [showCard, setShowCard] = useState(1);
+  const [timerMode, setTimerMode] = useState("pomo");
 
   const startTimer = () => {
     setTimerRunning(true);
@@ -18,12 +19,9 @@ const Pomodoro = () => {
   };
 
   const resetTimer = () => {
-    setFocusTimeRemaining(25 * 60);
-    setBreakTimeRemaining(5 * 60);
+    setTimeRemaining(6 * 60); // Reset to 6 minutes for pomodoro mode
     setTimerRunning(false);
     setIsBreak(false);
-    setShowCards(false);
-    setShowCard(1);
   };
 
   const formatTime = (time) => {
@@ -33,81 +31,78 @@ const Pomodoro = () => {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleModeChange = (event) => {
+    setTimerMode(event.target.id);
+    switch (event.target.id) {
+      case "pomo":
+        setTimeRemaining(6 * 60); // 6 minutes
+        break;
+      case "short":
+        setTimeRemaining(30); // 30 seconds
+        break;
+      case "long":
+        setTimeRemaining(60 * 60); // 60 minutes
+        break;
+      default:
+        setTimeRemaining(6 * 60); // Default to pomodoro mode
+    }
+  };
+
   useEffect(() => {
     let intervalId;
 
-    if (timerRunning && focusTimeRemaining > 0) {
+    if (timerRunning && timeRemaining > 0) {
       intervalId = setInterval(() => {
-        setFocusTimeRemaining((prevTime) => prevTime - 1);
+        setTimeRemaining((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timerRunning && focusTimeRemaining === 0) {
-      clearInterval(intervalId);
-
-      if (!isBreak) {
-        setBreakTimeRemaining(5 * 60);
-        setIsBreak(true);
-        setShowCards(true);
-      } else {
-        setFocusTimeRemaining(25 * 60);
-        setIsBreak(false);
-        setShowCards(false);
-        setShowCard(1);
-      }
     }
 
     return () => clearInterval(intervalId);
-  }, [timerRunning, focusTimeRemaining, isBreak]);
+  }, [timerRunning, timeRemaining]);
 
-  useEffect(() => {
-    if (showCards) {
-      const timer = setTimeout(() => {
-        setShowCard((prevCard) => (prevCard === 3 ? 1 : prevCard + 1));
-      }, 3000); // Change to the desired duration in milliseconds
+  const calculateProgress = () => {
+    return (timeRemaining / (timerMode === "long" ? 60 * 60 : 6 * 60)) * 100;
+  };
 
-      return () => clearTimeout(timer);
-    }
-  }, [showCards]);
-
-  const renderCardsSection = () => {
-    if (!timerRunning && focusTimeRemaining === 0 && isBreak && showCards) {
-      const cards = [
-        { id: 1, content: 'Content 1' },
-        { id: 2, content: 'Content 2' },
-        { id: 3, content: 'Content 3' }
-      ];
-
-      return (
-        <section>
-          <div className={styles.cardsSection}>
-            <h2>Cards Section</h2>
-            <div className={styles.cardContainer}>
-              {cards.map((card) => (
-                <div
-                  key={card.id}
-                  className={`${styles.card} ${showCard === card.id ? styles.show : ""}`}
-                >
-                  <div className={styles.cardContent}>
-                    <h3>Card {card.id}</h3>
-                    <p>{card.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      );
-    }
-    return null;
+  const renderTime = ({ remainingTime }) => {
+    return (
+      <div className={styles.timerText}>
+        {formatTime(remainingTime)}
+      </div>
+    );
   };
 
   return (
     <div className={styles.pomodoroPage}>
       <section>
-        <div className={styles.Pomodoro}>
-          <h1 styles={{ marginTop: "20px", padding: "20px" }}>Pomodoro</h1>
+        <section>
+          <div className={styles.Pomodoro}>
+            <Controls
+              timerMode={timerMode}
+              setTimerMode={setTimerMode}
+              handleModeChange={handleModeChange}
+            />
+            <div className={styles.timerwrapper}>
+              <CountdownCircleTimer
+                isPlaying={timerRunning}
+                duration={calculateTotalDuration()}
+                colors={[["#2D27DC"]]}
+                strokeWidth={8}
+                size={240}
+                onComplete={() => setIsBreak(true)}
+              >
+                {renderTime}
+              </CountdownCircleTimer>
+            </div>
+          </div>
+        </section>
+        <div className={styles.timerControls}>
+          <button onClick={startTimer}>Start</button>
+          <button onClick={stopTimer}>Stop</button>
+          <button onClick={resetTimer}>Reset</button>
         </div>
       </section>
-      {renderCardsSection()}
+      {!isBreak && timeRemaining === 0 && <CardContent />}
     </div>
   );
 };
