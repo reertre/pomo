@@ -1,96 +1,32 @@
-import React from 'react';
-import { makeStyles } from '@material-ui/core/styles';
-import Slider from '@material-ui/core/Slider';
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import Wellbeing from "./path/to/Wellbeing"; // Import the Wellbeing array
 
-const useStyles = makeStyles({
-  root: {
-    width: 400,
-    margin: 'auto',
-  },
-});
+// Function to handle button click
+const handleDownloadButtonClick = () => {
+  // Create a new jsPDF instance
+  const doc = new jsPDF();
 
-const Settings = () => {
-  const classes = useStyles();
+  // Define the table data array with header row
+  const tableData = [["Type", "Score"]];
 
-  const handleWorkDurationChange = (event, value) => {
-    console.log('Work Duration:', value);
-  };
+  // Iterate over the Wellbeing array and populate the table data
+  Wellbeing.forEach((item) => {
+    const rowData = [item["Wellbeing -type"], item.Score];
+    tableData.push(rowData);
+  });
 
-  const handleShortBreakDurationChange = (event, value) => {
-    console.log('Short Break Duration:', value);
-  };
+  // Set the table column widths (optional)
+  const columnWidths = [40, 40];
 
-  const handleLongBreakDurationChange = (event, value) => {
-    console.log('Long Break Duration:', value);
-  };
+  // Auto-generate the table based on the data
+  doc.autoTable({
+    head: tableData[0], // Table header
+    body: tableData.slice(1), // Table body
+    startY: 20, // Y position to start the table
+    columnWidth: columnWidths, // Column widths
+  });
 
-  const handleRoundsChange = (event, value) => {
-    console.log('Rounds:', value);
-  };
-
-  return (
-    <div className={classes.root}>
-      <div>
-        <p>Work Duration</p>
-        <Slider
-          min={5}
-          max={60}
-          marks={[
-            { value: 5, label: '5 mins' },
-            { value: 60, label: '60 mins' },
-          ]}
-          onChange={handleWorkDurationChange}
-          defaultValue={25}
-          valueLabelDisplay="auto"
-        />
-      </div>
-
-      <div>
-        <p>Short Break Duration</p>
-        <Slider
-          min={1}
-          max={30}
-          marks={[
-            { value: 1, label: '1 min' },
-            { value: 30, label: '30 mins' },
-          ]}
-          onChange={handleShortBreakDurationChange}
-          defaultValue={10}
-          valueLabelDisplay="auto"
-        />
-      </div>
-
-      <div>
-        <p>Long Break Duration</p>
-        <Slider
-          min={1}
-          max={45}
-          marks={[
-            { value: 1, label: '1 min' },
-            { value: 45, label: '45 mins' },
-          ]}
-          onChange={handleLongBreakDurationChange}
-          defaultValue={20}
-          valueLabelDisplay="auto"
-        />
-      </div>
-
-      <div>
-        <p>Rounds</p>
-        <Slider
-          min={2}
-          max={15}
-          marks={[
-            { value: 2, label: '2' },
-            { value: 15, label: '15' },
-          ]}
-          onChange={handleRoundsChange}
-          defaultValue={5}
-          valueLabelDisplay="auto"
-        />
-      </div>
-    </div>
-  );
+  // Download the PDF file
+  doc.save("wellbeing_report.pdf");
 };
-
-export default Settings;
