@@ -30,3 +30,12 @@ const handleDownloadButtonClick = () => {
   // Download the PDF file
   doc.save("wellbeing_report.pdf");
 };
+
+
+const tableData = [["Type", "Score"]]; // Initialize the tableData array with header row
+
+// Loop through the Wellbeing array and add data rows to the tableData array
+Wellbeing.forEach((item) => {
+  const { Type, Score } = item;
+  tableData.push([Type, Score]); // Add a row with Type and Score values
+});
