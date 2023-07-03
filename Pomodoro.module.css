@@ -1,46 +1,63 @@
-.app {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+import React, { useState, useEffect } from 'react';
 
-.centeredContent {
-  width: 400px; /* Adjust the width as needed */
-}
+const TaskList = () => {
+  const [taskList, setTaskList] = useState([]);
+  const [newTask, setNewTask] = useState('');
+  const [displayTaskCard, setDisplayTaskCard] = useState(false);
 
-.sliderContainer {
-  margin-bottom: 20px;
-}
+  const onSaveAddTask = () => {
+    setTaskList([...taskList, newTask]);
+    closeCard();
+  };
 
-.slider {
-  margin-bottom: 10px;
-}
+  const displayTaskCard = () => {
+    setDisplayTaskCard(true);
+  };
 
-.sliderTitle {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
+  const closeCard = () => {
+    setDisplayTaskCard(false);
+    setNewTask('');
+  };
 
-/* Customize the track color */
-.rc-slider-track {
-  background-color: #2D27DC;
-}
+  useEffect(() => {
+    const onScroll = () => {
+      console.log('scroll!');
+    };
 
-/* Customize the handle color */
-.rc-slider-handle {
-  background-color: #2D27DC;
-  border-color: #2D27DC;
-}
+    window.addEventListener('scroll', onScroll);
 
-/* Customize the color on hover */
-.rc-slider-handle:hover {
-  background-color: #211CA6;
-  border-color: #211CA6;
-}
+    // Clean up the event listener when component unmounts
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
 
-/* Customize the color when active (being dragged) */
-.rc-slider-handle:active {
-  background-color: #150F54;
-  border-color: #150F54;
-}
+  return (
+    <div>
+      <button onClick={displayTaskCard}>Add Task</button>
+
+      {displayTaskCard && (
+        <div>
+          <input
+            type="text"
+            placeholder="Write Here"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+          />
+          <button onClick={onSaveAddTask}>
+            <h1>Save</h1>
+          </button>
+        </div>
+      )}
+
+      <div>
+        {taskList.map((task, index) => (
+          <div key={index}>{task}</div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default TaskList;
+    
