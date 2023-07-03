@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+const Scroll = dynamic(() => import('../components/Scroll'), {
+  ssr: false,
+});
 
 const TaskList = () => {
   const [taskList, setTaskList] = useState([]);
@@ -26,7 +31,6 @@ const TaskList = () => {
 
     window.addEventListener('scroll', onScroll);
 
-    // Clean up the event listener when component unmounts
     return () => {
       window.removeEventListener('scroll', onScroll);
     };
@@ -55,9 +59,11 @@ const TaskList = () => {
           <div key={index}>{task}</div>
         ))}
       </div>
+
+      <Scroll />
     </div>
   );
 };
 
 export default TaskList;
-    
+                      
