@@ -5,8 +5,8 @@ if book_id_system == "IMPACT":
             first_half = book_name[0 : idx].strip()
             parts = first_half.split('.')
             unique_parts = []
-            for part in parts:
-                if not unique_parts or unique_parts[-1] != part:
+            for i, part in enumerate(parts):
+                if i == 0 or part != parts[i - 1]:
                     unique_parts.append(part)
             return '.'.join(unique_parts)
 
