@@ -9,10 +9,11 @@ if book_id_system == "IMPACT":
                 if not unique_parts or unique_parts[-1] != part:
                     unique_parts.append(part)
             
-            # Check if the last part of unique_parts is the same as system_entity
-            if unique_parts and unique_parts[-1] == system_entity:
-                unique_parts.pop()  # Remove trailing duplicate of system_entity
+            # Join unique parts and add system_entity only once at the end
+            result = '.'.join(unique_parts)
+            if result != system_entity:
+                result = f"{result}.{system_entity}"
             
-            return '.'.join(unique_parts)
+            return result
 
 return book_name
