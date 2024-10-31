@@ -14,10 +14,10 @@ NEW_RELEASE_FOLDER="./release/$RELEASE_PATH"
 
 # Fetch the latest changes and tags from master
 echo "Fetching updates from master branch..."
-git fetch origin master --tags
+git fetch master --tags
 
 # Verify the release path in master
-if ! git ls-tree -d origin/master "releases/$RELEASE_PATH" > /dev/null 2>&1; then
+if ! git ls-tree -d master "releases/$RELEASE_PATH" > /dev/null 2>&1; then
   echo "Error: The specified release path 'releases/$RELEASE_PATH' does not exist in master."
   exit 1
 fi
@@ -28,7 +28,7 @@ mkdir -p "$NEW_RELEASE_FOLDER"
 
 # Step 2: Replicate the directory structure from the specified release in master
 echo "Replicating directory structure from master for $RELEASE_PATH..."
-for dir in $(git ls-tree -d --name-only "origin/master:releases/$RELEASE_PATH"); do
+for dir in $(git ls-tree -d --name-only "master:releases/$RELEASE_PATH"); do
   mkdir -p "$NEW_RELEASE_FOLDER/$dir"
   echo "Created directory: $NEW_RELEASE_FOLDER/$dir"
 done
