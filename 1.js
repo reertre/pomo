@@ -9,8 +9,8 @@ if [ -z "$RELEASE_PATH" ]; then
   exit 1
 fi
 
-# Define the base directory for the new release in the current branch
-NEW_RELEASE_FOLDER="release/$RELEASE_PATH"
+# Define the base directory for the new release in the root of the current branch
+NEW_RELEASE_FOLDER="./release/$RELEASE_PATH"
 
 # Fetch the latest changes and tags from master
 echo "Fetching updates from master branch..."
@@ -22,7 +22,7 @@ if ! git ls-tree -d origin/master "releases/$RELEASE_PATH" > /dev/null 2>&1; the
   exit 1
 fi
 
-# Step 1: Create the main release folder in the current branch
+# Step 1: Create the main release folder at the root level in the current branch
 echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
 mkdir -p "$NEW_RELEASE_FOLDER"
 
@@ -34,4 +34,3 @@ for dir in $(git ls-tree -d --name-only "origin/master:releases/$RELEASE_PATH");
 done
 
 echo "Release folder structure created successfully in $NEW_RELEASE_FOLDER."
-./Unix_Deploy.sh CHG1016576087/release_30.5
