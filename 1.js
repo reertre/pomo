@@ -1,22 +1,61 @@
 #!/bin/bash
 
-# Variables
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)  # Detect the current branch
-RELEASE_TAG="release_30.5"  # Replace with your specific release tag
-LAST_TAG=$(git describe --tags --abbrev=0)  # Get the previous tag for comparison
+# Define the release folder name (e.g., CHG1000682360/release_11.7.2) as an argument
+RELEASE_PATH=$1
 
-# Step 1: Confirm we're on the correct branch
-echo "Current branch is: $CURRENT_BRANCH"
-git pull origin $CURRENT_BRANCH  # Pull the latest changes for the detected branch
+# Check if a release path was provided
+if [ -z "$RELEASE_PATH" ]; then
+  echo "Please provide a release path (e.g., ./Unix_Deploy.sh CHG1000682360/release_11.7.2)"
+  exit 1
+fi
 
-# Step 2: Find commits tagged for the current release
-echo "Fetching commits between $LAST_TAG and $RELEASE_TAG..."
-COMMITS=$(git log $LAST_TAG..$RELEASE_TAG --oneline)
+# Define the base directory for the new release in the current branch
+NEW_RELEASE_FOLDER="release/$RELEASE_PATH"
+
+# Step 1: Fetch the latest changes from the master branch
+echo "Fetching updates from master branch..."
+git fetch origin master --tags
+
+# Step 2: Identify the last release tag for comparison (commit mask)
+# If there's a previous saved release, load that; otherwise, find the tag before the current one
+if [ -f .last_release_tag ]; then
+  LAST_TAG=$(cat .last_release_tag)
+else
+  LAST_TAG=$(git describe --tags --abbrev=0 $(git rev-list origin/master --tags "$RELEASE_PATH" --skip=1 --max-count=1))
+fi
+
+# Save the current release tag as the new commit mask for future runs
+echo "$RELEASE_PATH" > .last_release_tag
+
+# Step 3: Get the commits and changed files between LAST_TAG and RELEASE_PATH on master
+echo "Fetching commits between $LAST_TAG and $RELEASE_PATH on master..."
+COMMITS=$(git log origin/master $LAST_TAG..$RELEASE_PATH --oneline)
+CHANGED_FILES=$(git diff --name-only origin/master $LAST_TAG..$RELEASE_PATH)
+
+# Display the commits
+echo "Commits between $LAST_TAG and $RELEASE_PATH:"
 echo "$COMMITS"
 
-# Step 3: List changed files since the last release tag
-echo "Listing changed files between $LAST_TAG and $RELEASE_TAG..."
-CHANGED_FILES=$(git diff --name-only $LAST_TAG..$RELEASE_TAG)
+# Display the changed files
+echo "Files changed between $LAST_TAG and $RELEASE_PATH:"
 echo "$CHANGED_FILES"
 
-echo "Build file executed successfully."
+# Step 4: Create a release folder in the current branch and replicate the structure
+echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER"
+
+# Step 5: Replicate the directory structure and copy only the changed files from master
+echo "$CHANGED_FILES" | while read -r file; do
+  # Get the directory path of each changed file
+  DIRECTORY="$NEW_RELEASE_FOLDER/$(dirname "$file")"
+  
+  # Create the directory structure if it doesn't already exist
+  mkdir -p "$DIRECTORY"
+  
+  # Copy the file from master branch to the current branch's release folder
+  git show "origin/master:$file" > "$NEW_RELEASE_FOLDER/$file"
+  echo "Copied file: $NEW_RELEASE_FOLDER/$file"
+done
+
+echo "Release folder structure created successfully in $NEW_RELEASE_FOLDER."
+echo "Only changed files have been copied to the release folder."
