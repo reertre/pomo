@@ -8,20 +8,26 @@ echo "Current branch is: $CURRENT_BRANCH"
 echo "Fetching the latest updates from the master branch..."
 git fetch origin master:master
 
-# Step 3: Detect the two most recent release folders in the master branch
-echo "Detecting the two most recent release folders in 'releases/' on master..."
-LATEST_RELEASES=($(git ls-tree -d --name-only master releases | sort -r | head -n 2))
+# Define specific release paths
+OLD_RELEASE_PATH="CHG1000267275/release_10.2"
+NEW_RELEASE_PATH="CHG1000297321/release_10.3"
 
-# Ensure we found exactly two release folders
-if [ ${#LATEST_RELEASES[@]} -ne 2 ]; then
-  echo "Error: Unable to detect exactly two release folders in 'releases/' on master."
+# Step 3: Verify the release paths exist in master
+# Check if the old release path exists in master
+if ! git ls-tree -d --name-only master "releases/$OLD_RELEASE_PATH" > /dev/null 2>&1; then
+  echo "Error: The specified old release path 'releases/$OLD_RELEASE_PATH' does not exist in the master branch."
   exit 1
+else
+  echo "Old release path 'releases/$OLD_RELEASE_PATH' exists in master branch."
 fi
 
-# Define the old and new release paths based on detection
-OLD_RELEASE_PATH="${LATEST_RELEASES[1]}"
-NEW_RELEASE_PATH="${LATEST_RELEASES[0]}"
-echo "Comparing folders: Old release = $OLD_RELEASE_PATH, New release = $NEW_RELEASE_PATH"
+# Check if the new release path exists in master
+if ! git ls-tree -d --name-only master "releases/$NEW_RELEASE_PATH" > /dev/null 2>&1; then
+  echo "Error: The specified new release path 'releases/$NEW_RELEASE_PATH' does not exist in the master branch."
+  exit 1
+else
+  echo "New release path 'releases/$NEW_RELEASE_PATH' exists in master branch."
+fi
 
 # Step 4: Compare the contents of the two release folders and list changed files
 echo "Comparing contents between releases/$OLD_RELEASE_PATH and releases/$NEW_RELEASE_PATH on master..."
@@ -35,7 +41,7 @@ echo "Switching back to the current branch: $CURRENT_BRANCH"
 git checkout "$CURRENT_BRANCH"
 
 # Define the base directory for the new release folder in the root of the current branch
-NEW_RELEASE_FOLDER="./$NEW_RELEASE_PATH"
+NEW_RELEASE_FOLDER="./releases/$NEW_RELEASE_PATH"
 
 # Create the main release folder at the root level in the current branch
 echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
