@@ -1,129 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import styles from './pomodoro.module.css';
-import { CountdownCircleTimer } from 'react-countdown-circle-timer';
-import Controls from './controls';
-import CardContent from './cardsContent';
-import Settings from './settings';
+#!/bin/bash
 
-const Pomodoro = () => {
-  const [timeRemaining, setTimeRemaining] = useState(60); // Initial duration in seconds
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [isBreak, setIsBreak] = useState(false);
-  const [timerMode, setTimerMode] = useState('pomo');
+# Step 1: Store the current branch name to switch back later
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "Current branch is: $CURRENT_BRANCH"
 
-  const startTimer = () => {
-    setTimerRunning(true);
-  };
+# Step 2: Fetch the latest updates from master
+echo "Fetching the latest updates from the master branch..."
+git fetch origin master:master
 
-  const stopTimer = () => {
-    setTimerRunning(false);
-  };
+# Step 3: Detect the two most recent release folders in the master branch
+echo "Detecting the two most recent release folders in 'releases/' on master..."
+LATEST_RELEASES=($(git ls-tree -d --name-only master releases | sort -r | head -n 2))
 
-  const resetTimer = () => {
-    setTimeRemaining(60); // Reset to initial duration
-    setTimerRunning(false);
-    setIsBreak(false);
-  };
+# Ensure we found exactly two release folders
+if [ ${#LATEST_RELEASES[@]} -ne 2 ]; then
+  echo "Error: Unable to detect exactly two release folders in 'releases/' on master."
+  exit 1
+fi
 
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
+# Define the old and new release paths based on detection
+OLD_RELEASE_PATH="${LATEST_RELEASES[1]}"
+NEW_RELEASE_PATH="${LATEST_RELEASES[0]}"
+echo "Comparing folders: Old release = $OLD_RELEASE_PATH, New release = $NEW_RELEASE_PATH"
 
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
+# Step 4: Compare the contents of the two release folders and list changed files
+echo "Comparing contents between releases/$OLD_RELEASE_PATH and releases/$NEW_RELEASE_PATH on master..."
+CHANGED_FILES=$(git diff --name-only master -- "releases/$OLD_RELEASE_PATH" "releases/$NEW_RELEASE_PATH")
+echo "Files changed between $OLD_RELEASE_PATH and $NEW_RELEASE_PATH:"
+echo "$CHANGED_FILES"
 
-  const handleModeChange = (event) => {
-    setTimerMode(event.target.id);
-    switch (event.target.id) {
-      case 'pomo':
-        setTimeRemaining(60); // Set to initial duration for pomodoro mode
-        break;
-      case 'short':
-        setTimeRemaining(30); // Set to desired duration for short break
-        break;
-      case 'long':
-        setTimeRemaining(90); // Set to desired duration for long break
-        break;
-      default:
-        setTimeRemaining(60); // Default to pomodoro mode
-    }
-  };
+# Step 5: Create the new release folder structure in the current branch
+# Switch back to the original branch
+echo "Switching back to the current branch: $CURRENT_BRANCH"
+git checkout "$CURRENT_BRANCH"
 
-  useEffect(() => {
-    let intervalId;
+# Define the base directory for the new release folder in the root of the current branch
+NEW_RELEASE_FOLDER="./$NEW_RELEASE_PATH"
 
-    if (timerRunning && timeRemaining > 0) {
-      intervalId = setInterval(() => {
-        setTimeRemaining((prevTime) => prevTime - 1);
-      }, 1000);
-    }
+# Create the main release folder at the root level in the current branch
+echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER"
 
-    return () => clearInterval(intervalId);
-  }, [timerRunning, timeRemaining]);
+# Step 6: Copy the changed files from master to the new release folder in the current branch
+for file in $CHANGED_FILES; do
+  # Extract the path within the new release folder
+  RELATIVE_PATH=${file#"releases/$NEW_RELEASE_PATH/"}
 
-  useEffect(() => {
-    // Update the timer when the duration values change
-    if (timerMode === 'pomo') {
-      setTimeRemaining(60); // Set to initial duration for pomodoro mode
-    } else if (timerMode === 'short') {
-      setTimeRemaining(30); // Set to desired duration for short break
-    } else if (timerMode === 'long') {
-      setTimeRemaining(90); // Set to desired duration for long break
-    }
-  }, [timerMode]);
+  # Create the directory structure in the current branch
+  mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$RELATIVE_PATH")"
 
-  const calculateProgress = () => {
-    return (timeRemaining / (timerMode === 'long' ? 90 : 60)) * 100;
-  };
+  # Copy the file content from master to the new release folder
+  git show "master:$file" > "$NEW_RELEASE_FOLDER/$RELATIVE_PATH"
+  echo "Copied changed file: $NEW_RELEASE_FOLDER/$RELATIVE_PATH"
+done
 
-  const renderTime = ({ remainingTime }) => {
-    return <div className={styles.timerText}>{formatTime(remainingTime)}</div>;
-  };
-
-  return (
-    <div className={styles.pomodoroPage}>
-      <section>
-        <section>
-          <div className={styles.Pomodoro}>
-            <Controls
-              timerMode={timerMode}
-              setTimerMode={setTimerMode}
-              handleModeChange={handleModeChange}
-            />
-            <div className={styles.timerwrapper}>
-              <CountdownCircleTimer
-                isPlaying={timerRunning}
-                duration={timeRemaining}
-                colors={[['#2D27DC']]}
-                strokeWidth={6}
-                size={300}
-                onComplete={() => setIsBreak((prevIsBreak) => !prevIsBreak)}
-              >
-                {renderTime}
-              </CountdownCircleTimer>
-            </div>
-            <div className={styles.progressBar}>
-              <div
-                className={styles.progress}
-                style={{ width: `${calculateProgress()}%` }}
-              ></div>
-            </div>
-            <div className={styles.controls}>
-              <button onClick={startTimer}>Start</button>
-              <button onClick={stopTimer}>Stop</button>
-              <button onClick={resetTimer}>Reset</button>
-            </div>
-          </div>
-          {!isBreak && timeRemaining === 0 && <CardContent />}
-        </section>
-        <Settings
-          timerMode={timerMode}
-          setTimerMode={setTimerMode}
-          setTimeRemaining={setTimeRemaining}
-        />
-      </section>
-    </div>
-  );
-};
-
-export default Pomodoro;
+echo "Release folder structure created successfully in $NEW_RELEASE_FOLDER with all changed files."
