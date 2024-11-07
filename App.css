@@ -1,46 +1,74 @@
 #!/bin/bash
+# Specifies that the script should be run with the Bash shell.
 
 # Step 1: Store the current branch name to switch back later
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# Uses 'git rev-parse --abbrev-ref HEAD' to get the name of the current branch.
+# This command finds the current branch without returning the full commit hash.
+# Stores the branch name in the variable CURRENT_BRANCH for later use.
 echo "Current branch is: $CURRENT_BRANCH"
+# Prints the current branch name to confirm the branch we’re working in.
 
 # Step 2: Prompt for the feature branch name and release folder name
 read -p "Enter the feature branch name to compare (e.g., feature/FINRR-53522-gitlab-migration): " FEATURE_BRANCH
+# Prompts the user to enter the name of the feature branch to compare.
+# The input is stored in the variable FEATURE_BRANCH.
 read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
+# Prompts the user to enter a name for the release folder.
+# The input is stored in the variable RELEASE_FOLDER.
 
 # Step 3: Check if the feature branch exists in the remote repository
 if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
-  # If the branch does not exist, display an error message and exit
+  # Uses 'git ls-remote --heads origin "$FEATURE_BRANCH"' to check if the specified branch exists on the remote.
+  # The '--heads' option restricts the output to branch heads.
+  # '&> /dev/null' redirects the command output to null, silencing it.
+  # If the branch doesn't exist, the negation '!' makes the condition true, and the script moves to the 'then' block.
+  
   echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
+  # Prints an error message indicating that the specified branch does not exist in the remote repository.
+  
   exit 1
+  # Exits the script with a status of 1, signaling an error.
 fi
 
 # Step 4: Fetch the latest updates from the feature branch
 echo "Fetching the latest updates from the feature branch '$FEATURE_BRANCH'..."
+# Prints a message indicating that the script is fetching updates from the specified feature branch.
 git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
+# Fetches the latest updates from the remote feature branch into a local branch with the same name.
 
-# Step 5: Define the release folder path in the current directory
-NEW_RELEASE_FOLDER="./$RELEASE_FOLDER"
-
-# Step 6: Compare the current branch with the feature branch to list changed files
-echo "Comparing the current branch with $FEATURE_BRANCH..."
+# Step 5: Compare the current branch and the feature branch to list changed files
+echo "Comparing the current branch with feature branch '$FEATURE_BRANCH'..."
+# Prints a message indicating that the script will now compare the current branch with the specified feature branch.
 CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
+# Runs 'git diff --name-only' to list files that are different between the current branch and the specified feature branch.
+# Stores the output (list of changed files) in the CHANGED_FILES variable.
 echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
+# Prints a message indicating the files that have changed between the two branches.
 echo "$CHANGED_FILES"
+# Prints the list of changed files.
 
-# Step 7: Create the release folder in the current branch
-echo "Creating release folder at: $NEW_RELEASE_FOLDER"
-mkdir -p "$NEW_RELEASE_FOLDER"
+# Step 6: Create the release folder in the current branch
+echo "Creating release folder at: $RELEASE_FOLDER"
+# Prints a message indicating that the script is creating a release folder with the specified name.
+mkdir -p "$RELEASE_FOLDER"
+# Creates the release folder (if it doesn’t already exist) with the name specified by the user.
+# The '-p' option ensures that any missing parent directories are also created.
 
-# Step 8: Copy the changed files from the feature branch to the release folder in the current branch
+# Step 7: Copy the changed files from the feature branch to the release folder in the current branch
 for file in $CHANGED_FILES; do
-  # Create the directory structure in the release folder for each changed file
-  mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
-
-  # Copy the content of each changed file from the feature branch to the release folder
-  git show "$FEATURE_BRANCH:$file" > "$NEW_RELEASE_FOLDER/$file"
-  echo "Copied changed file: $NEW_RELEASE_FOLDER/$file"
+  # Starts a for loop to iterate over each file in the CHANGED_FILES variable.
+  
+  mkdir -p "$RELEASE_FOLDER/$(dirname "$file")"
+  # Creates the necessary directory structure in the release folder to match the paths of the changed files.
+  # '$(dirname "$file")' extracts the directory path of the file.
+  
+  git show "$FEATURE_BRANCH:$file" > "$RELEASE_FOLDER/$file"
+  # Uses 'git show' to output the content of the specified file from the feature branch.
+  # Redirects this content into the corresponding path within the release folder in the current branch.
+  echo "Copied changed file: $RELEASE_FOLDER/$file"
+  # Prints a message indicating that the changed file has been copied to the release folder.
 done
 
-# Step 9: Confirm successful creation of the release folder with changed files
-echo "Release folder created successfully at $NEW_RELEASE_FOLDER with all changed files."
+echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
+# Prints a success message indicating that the release folder has been created and populated with changed files.
