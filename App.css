@@ -1,31 +1,35 @@
-.App {
-  text-align: center;
-  font-family: "Roboto", sans-serif;
-}
+#!/bin/bash
 
-.timerWrapper {
-  display: flex;
-  justify-content: center;
-}
+# Step 1: Store the current branch name to switch back later
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "Current branch is: $CURRENT_BRANCH"
 
-.timer {
-  font-family: "Montserrat", sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+# Step 2: Fetch the latest updates from the feature branch
+echo "Fetching the latest updates from the feature branch 'feature/FINRR-53522-gitlab-migration'..."
+git fetch origin feature/FINRR-53522-gitlab-migration:feature/FINRR-53522-gitlab-migration
 
-.text {
-  color: #fff;
-}
+# Step 3: Define the release folder path
+RELEASE_FOLDER="release_53522"
+NEW_RELEASE_FOLDER="./$RELEASE_FOLDER"
 
-.value {
-  font-size: 40px;
-}
+# Step 4: Compare the current branch and the feature branch to list changed files
+echo "Comparing the current branch with feature/FINRR-53522-gitlab-migration..."
+CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "feature/FINRR-53522-gitlab-migration")
+echo "Files changed between $CURRENT_BRANCH and feature/FINRR-53522-gitlab-migration:"
+echo "$CHANGED_FILES"
 
-.info {
-  max-width: 360px;
-  margin: 40px auto 0;
-  text-align: center;
-  font-size: 16px;
-}
+# Step 5: Create the release folder in the current branch
+echo "Creating release folder at: $NEW_RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER"
+
+# Step 6: Copy the changed files from the feature branch to the release folder in the current branch
+for file in $CHANGED_FILES; do
+  # Create the directory structure in the release folder
+  mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
+
+  # Copy the file content from the feature branch to the release folder
+  git show "feature/FINRR-53522-gitlab-migration:$file" > "$NEW_RELEASE_FOLDER/$file"
+  echo "Copied changed file: $NEW_RELEASE_FOLDER/$file"
+done
+
+echo "Release folder created successfully at $NEW_RELEASE_FOLDER with all changed files."
