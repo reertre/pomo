@@ -8,8 +8,9 @@ echo "Current branch is: $CURRENT_BRANCH"
 read -p "Enter the feature branch name to compare (e.g., feature/FINRR-53522-gitlab-migration): " FEATURE_BRANCH
 read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
 
-# Step 3: Check if the feature branch exists
+# Step 3: Check if the feature branch exists in the remote repository
 if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
+  # If the branch does not exist, display an error message and exit
   echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
   exit 1
 fi
@@ -18,10 +19,10 @@ fi
 echo "Fetching the latest updates from the feature branch '$FEATURE_BRANCH'..."
 git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
 
-# Step 5: Define the release folder path
+# Step 5: Define the release folder path in the current directory
 NEW_RELEASE_FOLDER="./$RELEASE_FOLDER"
 
-# Step 6: Compare the current branch and the feature branch to list changed files
+# Step 6: Compare the current branch with the feature branch to list changed files
 echo "Comparing the current branch with $FEATURE_BRANCH..."
 CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
 echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
@@ -33,12 +34,13 @@ mkdir -p "$NEW_RELEASE_FOLDER"
 
 # Step 8: Copy the changed files from the feature branch to the release folder in the current branch
 for file in $CHANGED_FILES; do
-  # Create the directory structure in the release folder
+  # Create the directory structure in the release folder for each changed file
   mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
 
-  # Copy the file content from the feature branch to the release folder
+  # Copy the content of each changed file from the feature branch to the release folder
   git show "$FEATURE_BRANCH:$file" > "$NEW_RELEASE_FOLDER/$file"
   echo "Copied changed file: $NEW_RELEASE_FOLDER/$file"
 done
 
+# Step 9: Confirm successful creation of the release folder with changed files
 echo "Release folder created successfully at $NEW_RELEASE_FOLDER with all changed files."
