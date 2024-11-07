@@ -4,28 +4,34 @@
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "Current branch is: $CURRENT_BRANCH"
 
-# Step 2: Prompt the user to input the feature branch to compare
+# Step 2: Prompt for the feature branch name and release folder name
 read -p "Enter the feature branch name to compare (e.g., feature/FINRR-53522-gitlab-migration): " FEATURE_BRANCH
+read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
 
-# Fetch the latest updates from the specified feature branch
-echo "Fetching the latest updates from '$FEATURE_BRANCH'..."
+# Step 3: Check if the feature branch exists
+if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
+  echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
+  exit 1
+fi
+
+# Step 4: Fetch the latest updates from the feature branch
+echo "Fetching the latest updates from the feature branch '$FEATURE_BRANCH'..."
 git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
 
-# Step 3: Prompt the user to input the release folder name
-read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
+# Step 5: Define the release folder path
 NEW_RELEASE_FOLDER="./$RELEASE_FOLDER"
 
-# Step 4: Compare the current branch and the specified feature branch to list changed files
+# Step 6: Compare the current branch and the feature branch to list changed files
 echo "Comparing the current branch with $FEATURE_BRANCH..."
 CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
 echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
 echo "$CHANGED_FILES"
 
-# Step 5: Create the release folder in the current branch
+# Step 7: Create the release folder in the current branch
 echo "Creating release folder at: $NEW_RELEASE_FOLDER"
 mkdir -p "$NEW_RELEASE_FOLDER"
 
-# Step 6: Copy the changed files from the feature branch to the release folder in the current branch
+# Step 8: Copy the changed files from the feature branch to the release folder in the current branch
 for file in $CHANGED_FILES; do
   # Create the directory structure in the release folder
   mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
