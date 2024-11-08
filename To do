@@ -35,3 +35,13 @@ for file in $CHANGED_FILES; do
 done
 
 echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
+
+# Step 8: Create a tag with the release folder name
+echo "Creating tag '$RELEASE_FOLDER'..."
+git tag -a "$RELEASE_FOLDER" -m "Release tag for $RELEASE_FOLDER"
+git push origin "$RELEASE_FOLDER"
+echo "Tag '$RELEASE_FOLDER' created and pushed to origin."
+
+# Step 9: Create a commit mask using the latest commit hash
+COMMIT_MASK=$(git rev-parse HEAD)
+echo "Commit mask (latest commit hash): $COMMIT_MASK"
