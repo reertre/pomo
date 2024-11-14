@@ -1,69 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import requests
+import json
 
-const Scroll = dynamic(() => import('../components/Scroll'), {
-  ssr: false,
-});
+# Set up the URL for the request
+url = "http://entityservice_url/system/find"  # Replace with the actual base URL
 
-const TaskList = () => {
-  const [taskList, setTaskList] = useState([]);
-  const [newTask, setNewTask] = useState('');
-  const [displayTaskCard, setDisplayTaskCard] = useState(false);
+# Define the JSON payload for the request body
+payload = {
+    "criteria": {
+        "operator": "and",
+        "items": [
+            {
+                "operator": "gte",
+                "field": "id",
+                "value": 0
+            }
+        ]
+    },
+    "fields": [
+        "alias",
+        "comment",
+        "created_on",
+        "deprecated",
+        "dms_bulk_no",
+        "dms_bulk_ref",
+        "override",
+        "format",
+        "format_regex",
+        "in_scope_entities",
+        "refreshed_on",
+        "code",
+        "description",
+        "id",
+        "name",
+        "unique_maps",
+        "unique_system_map",
+        "updated_by",
+        "version",
+        "workflow_no"
+    ],
+    "take": 10
+}
 
-  const onSaveAddTask = () => {
-    setTaskList([...taskList, newTask]);
-    closeCard();
-  };
+# Define headers
+headers = {
+    "Content-Type": "application/json"
+}
 
-  const displayTaskCard = () => {
-    setDisplayTaskCard(true);
-  };
+# Make the POST request
+response = requests.post(url, headers=headers, json=payload)
 
-  const closeCard = () => {
-    setDisplayTaskCard(false);
-    setNewTask('');
-  };
-
-  useEffect(() => {
-    const onScroll = () => {
-      console.log('scroll!');
-    };
-
-    window.addEventListener('scroll', onScroll);
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, []);
-
-  return (
-    <div>
-      <button onClick={displayTaskCard}>Add Task</button>
-
-      {displayTaskCard && (
-        <div>
-          <input
-            type="text"
-            placeholder="Write Here"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-          />
-          <button onClick={onSaveAddTask}>
-            <h1>Save</h1>
-          </button>
-        </div>
-      )}
-
-      <div>
-        {taskList.map((task, index) => (
-          <div key={index}>{task}</div>
-        ))}
-      </div>
-
-      <Scroll />
-    </div>
-  );
-};
-
-export default TaskList;
-                      
+# Check if the request was successful
+if response.status_code == 200:
+    # Print the JSON response in a readable format
+    print(json.dumps(response.json(), indent=4))
+else:
+    # Print an error message if the request failed
+    print(f"Request failed with status code {response.status_code}")
+    print(response.text)
