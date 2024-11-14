@@ -1,59 +1,84 @@
-#!/bin/bash
+The error in the screenshot shows that Python is still unable to locate the utils module, and there’s also an issue with pywin32_bootstrap. Let’s tackle these one at a time.
 
-# Step 1: Store the current branch name to switch back later
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "Current branch is: $CURRENT_BRANCH"
+Step 1: Resolve the ModuleNotFoundError for utils
 
-# Step 2: Fetch the latest updates from master
-echo "Fetching the latest updates from the master branch..."
-git fetch origin master:master
+Since Python isn’t finding utils, there are a few approaches to ensure the path is correctly set.
 
-# Step 3: Verify the release paths exist in master
-# Define the release paths to compare (e.g., CHG1016576087/release_30.5 and CHG1016576087/release_31.0)
-OLD_RELEASE_PATH="CHG1016576087/release_30.5"
-NEW_RELEASE_PATH="CHG1016576087/release_31.0"
+1. Use an Absolute Path Adjustment in test.py:
 
-# Check if the old release path exists in master
-if ! git ls-tree -d --name-only master "releases/$OLD_RELEASE_PATH" > /dev/null 2>&1; then
-  echo "Error: The specified old release path 'releases/$OLD_RELEASE_PATH' does not exist in the master branch."
-  exit 1
-else
-  echo "Old release path 'releases/$OLD_RELEASE_PATH' exists in master branch."
-fi
+Modify test.py to add the absolute path to the parent directory of utils manually:
 
-# Check if the new release path exists in master
-if ! git ls-tree -d --name-only master "releases/$NEW_RELEASE_PATH" > /dev/null 2>&1; then
-  echo "Error: The specified new release path 'releases/$NEW_RELEASE_PATH' does not exist in the master branch."
-  exit 1
-else
-  echo "New release path 'releases/$NEW_RELEASE_PATH' exists in master branch."
-fi
+import sys
+import os
 
-# Step 4: Compare the contents of the two release folders
-echo "Comparing contents between releases/$OLD_RELEASE_PATH and releases/$NEW_RELEASE_PATH on master..."
-CHANGED_FILES=$(git diff --name-status master -- "releases/$OLD_RELEASE_PATH" "releases/$NEW_RELEASE_PATH")
-echo "Changes between $OLD_RELEASE_PATH and $NEW_RELEASE_PATH:"
-echo "$CHANGED_FILES"
+# Add the parent directory to the path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Step 5: Create the new release folder structure in the current branch
-# Switch back to the original branch
-echo "Switching back to the current branch: $CURRENT_BRANCH"
-git checkout "$CURRENT_BRANCH"
+from utils.api.system import System
 
-# Define the base directory for the new release folder in the root of the current branch
-NEW_RELEASE_FOLDER="./$NEW_RELEASE_PATH"
+# Test code
+system_instance = System()
+active_systems = system_instance.get_all_active()
+print(active_systems)
 
-# Create the main release folder at the root level in the current branch
-echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
-mkdir -p "$NEW_RELEASE_FOLDER"
 
-# Replicate the directory structure from master
-echo "Replicating directory structure from master './releases/$NEW_RELEASE_PATH'..."
-for dir in $(git ls-tree -d --name-only "master:releases/$NEW_RELEASE_PATH"); do
-  # Strip the original path prefix to replicate only the subdirectory structure
-  SUBDIR=${dir#"releases/$NEW_RELEASE_PATH"}
-  mkdir -p "$NEW_RELEASE_FOLDER/$SUBDIR"
-  echo "Created directory: $NEW_RELEASE_FOLDER/$SUBDIR"
-done
 
-echo "Release folder structure created successfully in $NEW_RELEASE_FOLDER."
+2. Run test.py with the Correct Working Directory:
+
+Open a terminal, navigate to the root of your project (the directory containing utils), and then run:
+
+python utils/test.py
+
+
+
+3. Set PYTHONPATH Manually:
+
+Set the PYTHONPATH to the root directory of your project:
+
+set PYTHONPATH=.
+python utils/test.py
+
+This command tells Python to look in the current directory (the project root) when searching for packages like utils.
+
+
+
+
+Step 2: Resolve the pywin32_bootstrap Error
+
+The pywin32_bootstrap issue is a separate problem related to the pywin32 installation. Here’s how to fix it:
+
+1. Reinstall pywin32:
+
+First, uninstall any existing (potentially broken) installation:
+
+pip uninstall pywin32
+
+Then, install a specific version of pywin32 compatible with your Python version:
+
+pip install pywin32==225 --trusted-host pypi.org --trusted-host files.pythonhosted.org
+
+
+
+2. Run the Post-Install Script for pywin32:
+
+After reinstalling, run the pywin32 post-install script to ensure proper setup:
+
+python -m pywin32_postinstall
+
+If this fails, make sure you’re running the command with administrator privileges.
+
+
+
+3. Consider a Virtual Environment (Optional):
+
+If pywin32 is not essential for your code, consider running your project in a virtual environment where you don’t need pywin32. Set up a virtual environment with only the required dependencies:
+
+python -m venv myenv
+myenv\Scripts\activate  # On Windows
+pip install -r requirements.txt  # Or manually install necessary packages
+
+
+
+
+After making these adjustments, try running test.py again. Let me know if the issues persist or if any new errors appear.
+
