@@ -1,80 +1,61 @@
-Given the folder path in the screenshot, let’s ensure Python correctly identifies utils as a module. Since the ModuleNotFoundError: No module named 'utils' error persists, we can try a few adjustments.
+def run(self, **kwargs):
+    # Required arguments check
+    required_arguments = ["url", "criteria", "take", "fields", "headers"]
+    for argument in required_arguments:
+        if argument not in kwargs:
+            message = f"{argument} was not provided."
+            logger.exception(message)
+            raise Exception(message)
 
-Solution: Adjust Python Path and Run from Project Root
+    # Retrieving values from kwargs
+    url = kwargs["url"]
+    criteria = kwargs["criteria"]
+    snap = self.common_snap_config  # Assuming this is correctly configured
+    after_id = 0
+    take = kwargs["take"]
+    fields = kwargs["fields"]
+    headers = kwargs["headers"]
 
-1. Navigate to the Project Root Directory:
+    total_fetched = 0
+    ittr = 0
+    outputs = []
 
-It appears you’re currently inside the codes directory. Try navigating one level up to the root directory, which likely contains utils, fields, and any other project folders. In your case, that should be:
+    while after_id is not None:
+        # Preparing the request body for each iteration
+        body = {
+            "criteria": criteria,
+            "snap": snap,
+            "after_id": after_id,
+            "take": take,
+            "fields": fields
+        }
 
-C:\Programs\python\SDS_BOOK\flexible-reporting\codebase\aayush\sds_common_code_development
+        # Added debugging print statements for URL, headers, and body_json
+        body_json = json.dumps(body)
+        print("Iteration:", ittr)  # Shows the current iteration count
+        print("URL:", url)  # Verifies the URL being used
+        print("Headers:", json.dumps(headers, indent=2))  # Shows headers in JSON format
+        print("Payload (body_json):", body_json)  # Verifies the request payload structure and content
 
+        # Sending the request
+        output = requests.post(
+            url=url,
+            headers=headers,
+            data=body_json,
+            cert=(self.crt_file, self.key_file),  # Ensure self.crt_file and self.key_file are valid paths
+            verify=False,  # SSL verification is disabled; change to True for production
+            stream=True
+        )
 
+        # Added debugging for response status code and text
+        print("Status Code:", output.status_code)  # Shows the response status code
+        print("Response Text:", output.text)  # Displays the full response body for additional error details
 
-2. Run test.py with an Absolute Path:
+        # Error handling if status code is not 200
+        if output.status_code != 200:
+            message = f"For ittr: {ittr}\nReceived this status code from SDS: {output.status_code}, Expected 200"
+            logger.exception(message)  # Logs the exception with status code details
+            raise Exception(message)
 
-Once you’re in the root directory, run test.py with the following command:
-
-python codes/utils/test.py
-
-
-
-3. Set PYTHONPATH Explicitly:
-
-Alternatively, you can set PYTHONPATH to the root directory to ensure Python recognizes utils as a package.
-
-Run these commands:
-
-On Windows:
-
-set PYTHONPATH=C:\Programs\python\SDS_BOOK\flexible-reporting\codebase\aayush\sds_common_code_development
-python codes/utils/test.py
-
-On Mac/Linux (if relevant):
-
-export PYTHONPATH=/path/to/your/project/root
-python codes/utils/test.py
-
-
-
-
-4. Modify test.py to Add the Root Path Temporarily:
-
-If you still encounter issues, modify test.py to explicitly add the root directory to the system path. Update test.py as follows:
-
-import sys
-import os
-
-# Add the project root to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-
-from utils.api.system import System
-
-# Test code
-system_instance = System()
-active_systems = system_instance.get_all_active()
-print(active_systems)
-
-Here, ../../.. assumes test.py is three directories deep from the root. Adjust the path as needed if your structure differs.
-
-
-
-
-
-Verify __init__.py Files
-
-Ensure that every directory (utils, api, and any subdirectories) has an __init__.py file. This will allow Python to recognize these directories as packages and make imports smoother.
-
-Summary
-
-1. Navigate to the root project directory.
-
-
-2. Set PYTHONPATH or modify test.py to add the root to the system path.
-
-
-3. Ensure every folder in the import path has an __init__.py.
-
-
-
-Try these steps and let me know if it successfully resolves the ModuleNotFoundError.
-
+        # Process response as required for your application
+        ittr += 1
