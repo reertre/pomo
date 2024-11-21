@@ -1,47 +1,47 @@
-#!/bin/bash
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "Current branch is: $CURRENT_BRANCH"
+from re import sub
+from typing import List, Dict
 
-read -p "Enter the feature branch name to compare (e.g., feature/FINRR-53522-gitlab-migration): " FEATURE_BRANCH
-read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
 
-if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
-  echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
-  exit 1
-fi
+class SystemFeed(Feed):
+    def __init__(self):
+        Feed.__init__(self)
+        config = Configurations()
+        self._sds_system_feed_attributes_config = config.get_sds_system_feed_attributes()
 
-echo "Fetching the latest updates from the feature branch '$FEATURE_BRANCH'..."
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
+    def _system_feed_content(self, system_data: List[Dict[str, any]], feed_name: str):
+        if "attributes" not in self._sds_system_feed_attributes_config:
+            raise Exception("Did not find attributes to create system feed.")
+        
+        headers = self._sds_system_feed_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-echo "Comparing the current branch with feature branch '$FEATURE_BRANCH'..."
-CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
-echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
-echo "$CHANGED_FILES"
+        all_system_information = list()
 
-if [[ "$CHANGED_FILES" == *".gitlab-ci.yml"* ]]; then
-  echo ".gitlab-ci.yml is among the changed files and will be included in the release folder."
-else
-  CHANGED_FILES="$CHANGED_FILES .gitlab-ci.yml"
-fi
+        # Iterate through each system in the data
+        for system in system_data:
+            curr_system_info = dict()
+            for header in headers:
+                # Extract data for each header if it exists in the system
+                curr_system_info[header] = (
+                    system[header] if header in system else None
+                )
+            all_system_information.append(curr_system_info)
 
-echo "Creating release folder at: $RELEASE_FOLDER"
-mkdir -p "$RELEASE_FOLDER"
+        # Create the feed file with extracted information
+        return self._create_feed_file(headers, all_system_information, feed_name)
 
-for file in $CHANGED_FILES; do
-  mkdir -p "$RELEASE_FOLDER/$(dirname "$file")"
-  git show "$FEATURE_BRANCH:$file" > "$RELEASE_FOLDER/$file"
-  echo "Copied changed file: $RELEASE_FOLDER/$file"
-done
+    def feed(self, system_data):
+        # Generate the feed name
+        feed_name = self._feed_name(sds_entity="system_feed", is_json=False)
 
-echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
+        # Generate the feed content
+        feed_file_content = self._system_feed_content(system_data, feed_name)
 
-# Step 8: Create a tag with the release folder name
-echo "Creating tag '$RELEASE_FOLDER'..."
-git tag -a "$RELEASE_FOLDER" -m "Release tag for $RELEASE_FOLDER"
-git push origin "$RELEASE_FOLDER"
-echo "Tag '$RELEASE_FOLDER' created and pushed to origin."
+        # Save the feed file
+        self._save(feed_name, content=feed_file_content)
 
-# Step 9: Create a commit mask using the latest commit hash
-COMMIT_MASK=$(git rev-parse HEAD)
-echo "Commit mask (latest commit hash): $COMMIT_MASK"
+        # Return the feed name for reference
+        return feed_name
