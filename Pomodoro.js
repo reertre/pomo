@@ -31,31 +31,23 @@ class AliasFeed(Feed):
                     # Handle nested alias structure
                     curr_alias_info[header] = []
                     for entry in alias["alias"]:
-                        alias_entry = {}
-                        if "value" in entry:
-                            alias_entry["value"] = entry["value"]
-                        else:
-                            alias_entry["value"] = "N/A"  # Default if 'value' is missing
-
-                        if "description" in entry:
-                            alias_entry["description"] = entry["description"]
-                        else:
-                            alias_entry["description"] = None  # Default if 'description' is missing
-
-                        if "name" in entry:
-                            alias_entry["name"] = entry["name"]
-                        else:
-                            alias_entry["name"] = None  # Default if 'name' is missing
-
+                        # Populate the alias fields dynamically
+                        alias_entry = {field: entry.get(field, None) for field in alias_fields}
+                        if alias_entry["value"] is None:
+                            alias_entry["value"] = "N/A"  # Fallback value if 'value' is missing
                         curr_alias_info[header].append(alias_entry)
-
                 elif header in alias:
                     # Handle non-nested fields
                     curr_alias_info[header] = alias[header]
-
                 else:
-                    # If header is not found in alias, assign None
+                    # Default to None if the header is not in the alias
                     curr_alias_info[header] = None
+
+            # Debugging: Ensure value is populated correctly
+            if "alias" in curr_alias_info:
+                for entry in curr_alias_info["alias"]:
+                    if "value" not in entry or entry["value"] is None:
+                        print(f"Warning: Missing 'value' in alias entry: {entry}")
 
             # Append the processed alias information
             all_alias_information.append(curr_alias_info)
