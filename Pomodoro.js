@@ -1,63 +1,69 @@
-#!/bin/bash
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
 
-# Step 1: Store the current branch name to switch back later
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "Current branch is: $CURRENT_BRANCH"
+from re import sub
+from typing import List, Dict
 
-# Step 2: Fetch the latest updates from master
-echo "Fetching the latest updates from the master branch..."
-git fetch origin master:master
 
-# Define specific release paths
-OLD_RELEASE_PATH="CHG1000267275/release_10.2"
-NEW_RELEASE_PATH="CHG1000297321/release_10.3"
+class AliasFeed(Feed):
+    def __init__(self):
+        Feed.__init__(self)
+        config = Configurations()
+        # Load alias feed attributes from configurations
+        self._sds_alias_feed_attributes_config = config.get_sds_alias_feed_attributes()
 
-# Step 3: Verify the release paths exist in master
-# Check if the old release path exists in master
-if ! git ls-tree -d --name-only master "releases/$OLD_RELEASE_PATH" > /dev/null 2>&1; then
-  echo "Error: The specified old release path 'releases/$OLD_RELEASE_PATH' does not exist in the master branch."
-  exit 1
-else
-  echo "Old release path 'releases/$OLD_RELEASE_PATH' exists in master branch."
-fi
+    def _alias_feed_content(self, alias_data: List[Dict[str, any]], feed_name: str):
+        # Check if 'attributes' exist in the alias feed configuration
+        if "attributes" not in self._sds_alias_feed_attributes_config:
+            raise Exception("Did not find attributes to create alias feed.")
+        
+        # Extract and clean the headers
+        headers = self._sds_alias_feed_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-# Check if the new release path exists in master
-if ! git ls-tree -d --name-only master "releases/$NEW_RELEASE_PATH" > /dev/null 2>&1; then
-  echo "Error: The specified new release path 'releases/$NEW_RELEASE_PATH' does not exist in the master branch."
-  exit 1
-else
-  echo "New release path 'releases/$NEW_RELEASE_PATH' exists in master branch."
-fi
+        # Ensure 'id' is included in the headers
+        if "id" not in headers:
+            headers.append("id")
 
-# Step 4: Compare the contents of the two release folders and list changed files
-echo "Comparing contents between releases/$OLD_RELEASE_PATH and releases/$NEW_RELEASE_PATH on master..."
-CHANGED_FILES=$(git diff --name-only master -- "releases/$OLD_RELEASE_PATH" "releases/$NEW_RELEASE_PATH")
-echo "Files changed between $OLD_RELEASE_PATH and $NEW_RELEASE_PATH:"
-echo "$CHANGED_FILES"
+        # List to hold all processed alias information
+        all_alias_information = list()
 
-# Step 5: Create the new release folder structure in the current branch
-# Switch back to the original branch
-echo "Switching back to the current branch: $CURRENT_BRANCH"
-git checkout "$CURRENT_BRANCH"
+        # Iterate through each alias in the data
+        for alias in alias_data:
+            curr_alias_info = dict()
+            for header in headers:
+                # Extract data for each header if it exists in the alias
+                if header == "id" and "alias" in alias:
+                    # Special handling for 'id' to ensure it's extracted properly
+                    curr_alias_info[header] = alias.get("id", None)
+                elif header == "alias":
+                    # Handle nested 'alias' list with 'value', 'description', 'name'
+                    curr_alias_info[header] = [
+                        {
+                            "value": item.get("value"),
+                            "description": item.get("description"),
+                            "name": item.get("name"),
+                        }
+                        for item in alias.get("alias", [])
+                    ]
+                else:
+                    # General handling for other headers
+                    curr_alias_info[header] = alias.get(header, None)
 
-# Define the base directory for the new release folder in the root of the current branch
-NEW_RELEASE_FOLDER="./releases/$NEW_RELEASE_PATH"
+            all_alias_information.append(curr_alias_info)
 
-# Create the main release folder at the root level in the current branch
-echo "Creating release folder structure at: $NEW_RELEASE_FOLDER"
-mkdir -p "$NEW_RELEASE_FOLDER"
+        # Create the feed file with extracted information
+        return self._create_feed_file(headers, all_alias_information, feed_name)
 
-# Step 6: Copy the changed files from master to the new release folder in the current branch
-for file in $CHANGED_FILES; do
-  # Extract the path within the new release folder
-  RELATIVE_PATH=${file#"releases/$NEW_RELEASE_PATH/"}
+    def feed(self, alias_data):
+        # Generate the feed name
+        feed_name = self._feed_name(sds_entity="alias_feed", is_json=False)
 
-  # Create the directory structure in the current branch
-  mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$RELATIVE_PATH")"
+        # Generate the feed content
+        feed_file_content = self._alias_feed_content(alias_data, feed_name)
 
-  # Copy the file content from master to the new release folder
-  git show "master:$file" > "$NEW_RELEASE_FOLDER/$RELATIVE_PATH"
-  echo "Copied changed file: $NEW_RELEASE_FOLDER/$RELATIVE_PATH"
-done
+        # Save the feed file
+        self._save(feed_name, content=feed_file_content)
 
-echo "Release folder structure created successfully in $NEW_RELEASE_FOLDER with all changed files."
+        # Return the feed name for reference
+        return feed_name
