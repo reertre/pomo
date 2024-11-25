@@ -31,14 +31,30 @@ class AliasFeed(Feed):
                     # Handle nested alias structure
                     curr_alias_info[header] = []
                     for entry in alias["alias"]:
-                        curr_alias_info[header].append(
-                            {field: entry.get(field) for field in alias_fields}
-                        )
+                        alias_entry = {}
+                        if "value" in entry:
+                            alias_entry["value"] = entry["value"]
+                        else:
+                            alias_entry["value"] = "N/A"  # Default if 'value' is missing
+
+                        if "description" in entry:
+                            alias_entry["description"] = entry["description"]
+                        else:
+                            alias_entry["description"] = None  # Default if 'description' is missing
+
+                        if "name" in entry:
+                            alias_entry["name"] = entry["name"]
+                        else:
+                            alias_entry["name"] = None  # Default if 'name' is missing
+
+                        curr_alias_info[header].append(alias_entry)
+
                 elif header in alias:
                     # Handle non-nested fields
                     curr_alias_info[header] = alias[header]
+
                 else:
-                    # Default to None if the header is not in the alias
+                    # If header is not found in alias, assign None
                     curr_alias_info[header] = None
 
             # Append the processed alias information
