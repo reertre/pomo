@@ -18,51 +18,47 @@ class AliasFeed(Feed):
         headers = self._sds_alias_feed_attributes_config["attributes"]
         headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-        all_alias_information = list()
-
-        # Declare alias fields to be extracted
+        alias_feed_outputs = list()
         alias_fields = ["value", "description", "name"]
 
-        # Process each alias in alias_data
-        for alias in alias_data:
-            curr_alias_info = dict()
-            for header in headers:
-                if header == "alias" and "alias" in alias:
-                    # Handle nested alias structure
-                    curr_alias_info[header] = []
-                    for entry in alias["alias"]:
-                        # Populate the alias fields dynamically
-                        alias_entry = {field: entry.get(field, None) for field in alias_fields}
-                        if alias_entry["value"] is None:
-                            alias_entry["value"] = "N/A"  # Fallback value if 'value' is missing
-                        curr_alias_info[header].append(alias_entry)
-                elif header in alias:
-                    # Handle non-nested fields
-                    curr_alias_info[header] = alias[header]
-                else:
-                    # Default to None if the header is not in the alias
-                    curr_alias_info[header] = None
+        # Iterate over each alias entry
+        for alias_book in alias_data:
+            if "alias" not in alias_book:
+                continue
 
-            # Debugging: Ensure value is populated correctly
-            if "alias" in curr_alias_info:
-                for entry in curr_alias_info["alias"]:
-                    if "value" not in entry or entry["value"] is None:
-                        print(f"Warning: Missing 'value' in alias entry: {entry}")
+            alias_feed = alias_book["alias"]
+            if not isinstance(alias_feed, list) or len(alias_feed) == 0:
+                continue
 
-            # Append the processed alias information
-            all_alias_information.append(curr_alias_info)
+            alias_book_id = str(alias_book["id"]) if "id" in alias_book else None
 
-        # Create and return the feed file
-        return self._create_feed_file(headers, all_alias_information, feed_name)
+            # Iterate over alias_feed entries
+            for alias_entry in alias_feed:
+                curr_alias_info = dict()
+
+                # Populate headers
+                for header in headers:
+                    if header == "alias_book_id":
+                        curr_alias_info[header] = alias_book_id
+                    elif header in alias_entry:
+                        curr_alias_info[header] = str(alias_entry[header])
+                    else:
+                        curr_alias_info[header] = None
+
+                # Append alias information
+                alias_feed_outputs.append(curr_alias_info)
+
+        # Create the feed file with the extracted alias information
+        return self._create_feed_file(headers, alias_feed_outputs, feed_name)
 
     def feed(self, alias_data):
-        # Generate feed name
+        # Generate the feed name
         feed_name = self._feed_name(sds_entity="alias_feed", is_json=False)
 
-        # Generate feed content
+        # Generate the feed content
         feed_file_content = self._alias_feed_content(alias_data, feed_name)
 
-        # Save the feed
+        # Save the feed file
         self._save(feed_name, content=feed_file_content)
 
         # Return the feed name for reference
