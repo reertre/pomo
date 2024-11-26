@@ -21,7 +21,7 @@ class AliasFeed(Feed):
         alias_feed_outputs = list()
         alias_fields = ["value", "description", "name"]
 
-        # Iterate over each alias entry
+        # Iterate over each alias_book entry
         for alias_book in alias_data:
             if "alias" not in alias_book:
                 continue
@@ -40,6 +40,8 @@ class AliasFeed(Feed):
                 for header in headers:
                     if header == "alias_book_id":
                         curr_alias_info[header] = alias_book_id
+                    elif header == "id":
+                        curr_alias_info[header] = alias_book_id  # Map the alias book ID to the "id" field
                     elif header in alias_entry:
                         curr_alias_info[header] = str(alias_entry[header])
                     else:
