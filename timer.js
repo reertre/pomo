@@ -1,20 +1,17 @@
 stages:
-  - build
+  - compare-and-release
 
 variables:
-  NEXUS_DEPLOY: "no"
-  FEATURE_BRANCH: $CI_COMMIT_REF_NAME  # Dynamically fetch current branch name
-  WORKING_DIR: "flexible_reporting"    # Example working directory
+  FEATURE_BRANCH: "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" # Auto-detect feature branch in merge requests
+  RELEASE_FOLDER: "release_${CI_PIPELINE_ID}"           # Unique folder for each pipeline
 
-build:
-  stage: build
+compare-and-release:
+  stage: compare-and-release
   script:
-    - echo "Starting build process for branch: $CI_COMMIT_REF_NAME"
-    - chmod +x scripts/Unix_Deploy.sh  # Ensure the script is executable
-    - bash scripts/Unix_Deploy.sh $CI_COMMIT_REF_NAME $WORKING_DIR
-    - echo "Build process completed successfully."
+    - echo "Starting branch comparison and release creation..."
+    - chmod +x scripts/compare_and_release.sh           # Make the script executable
+    - ./scripts/compare_and_release.sh "$CI_COMMIT_BRANCH" "$FEATURE_BRANCH" "$RELEASE_FOLDER"
   artifacts:
     paths:
-      - build.zip  # The generated zip file
-  only:
-    - feature/*  # Restrict to feature branches
+      - $RELEASE_FOLDER                                 # Save the release folder as an artifact
+    expire_in: 1 week                                   # Artifacts expire in 1 week
