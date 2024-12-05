@@ -9,7 +9,7 @@ echo "Release folder: $RELEASE_FOLDER"
 
 # Step 1: Fetch all remote branches
 echo "Fetching all remote branches..."
-git fetch --all > /dev/null 2>&1
+git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
 
 # Step 2: Detect the feature branch
 echo "Detecting the feature branch..."
@@ -18,7 +18,7 @@ if [[ "$CURRENT_BRANCH" == feature/* ]]; then
   echo "Current branch is a feature branch: $FEATURE_BRANCH"
 else
   echo "Finding the latest updated feature branch..."
-  FEATURE_BRANCH=$(git branch -r --sort=-committerdate | grep 'origin/feature/' | head -n 1 | sed 's|origin/||')
+  FEATURE_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/feature/* --format='%(refname:lstrip=3)' | head -n 1)
 fi
 
 if [[ -z "$FEATURE_BRANCH" ]]; then
@@ -37,11 +37,13 @@ fi
 
 # Step 4: Fetch updates from the feature branch
 echo "Fetching the latest updates from '$FEATURE_BRANCH'..."
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1
+git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1 || { echo "Error fetching feature branch"; exit 1; }
 
 # Step 5: Compare branches to find changed files
 echo "Comparing '$CURRENT_BRANCH' with '$FEATURE_BRANCH'..."
-CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
+git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error checking out current branch"; exit 1; }
+git checkout "$FEATURE_BRANCH" > /dev/null 2>&1 || { echo "Error checking out feature branch"; exit 1; }
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$FEATURE_BRANCH")
 
 if [[ -z "$CHANGED_FILES" ]]; then
   echo "No changes detected between '$CURRENT_BRANCH' and '$FEATURE_BRANCH'."
@@ -57,7 +59,7 @@ mkdir -p "$RELEASE_FOLDER"
 
 for file in $CHANGED_FILES; do
   mkdir -p "$RELEASE_FOLDER/$(dirname "$file")"
-  git show "$FEATURE_BRANCH:$file" > "$RELEASE_FOLDER/$file"
+  git show "$FEATURE_BRANCH:$file" > "$RELEASE_FOLDER/$file" || echo "Error copying file: $file"
   echo "Copied changed file: $RELEASE_FOLDER/$file"
 done
 
