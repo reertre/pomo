@@ -7,15 +7,18 @@ RELEASE_FOLDER=$2
 echo "Current branch: $CURRENT_BRANCH"
 echo "Release folder: $RELEASE_FOLDER"
 
-# Step 1: Determine the feature branch
+# Step 1: Fetch all remote branches
+echo "Fetching all remote branches..."
+git fetch --all > /dev/null 2>&1
+
+# Step 2: Detect the feature branch
 echo "Detecting the feature branch..."
 if [[ "$CURRENT_BRANCH" == feature/* ]]; then
   FEATURE_BRANCH="$CURRENT_BRANCH"
   echo "Current branch is a feature branch: $FEATURE_BRANCH"
 else
-  echo "Fetching all remote branches to find the latest feature branch..."
-  git fetch --all
-  FEATURE_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/feature/* --format='%(refname:lstrip=3)' | head -n 1)
+  echo "Finding the latest updated feature branch..."
+  FEATURE_BRANCH=$(git branch -r --sort=-committerdate | grep 'origin/feature/' | head -n 1 | sed 's|origin/||')
 fi
 
 if [[ -z "$FEATURE_BRANCH" ]]; then
@@ -25,18 +28,18 @@ fi
 
 echo "Detected feature branch: $FEATURE_BRANCH"
 
-# Step 2: Validate feature branch
+# Step 3: Validate feature branch
 echo "Validating feature branch '$FEATURE_BRANCH'..."
-if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
+if ! git ls-remote --heads origin "$FEATURE_BRANCH" > /dev/null 2>&1; then
   echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
   exit 1
 fi
 
-# Step 3: Fetch updates from the feature branch
+# Step 4: Fetch updates from the feature branch
 echo "Fetching the latest updates from '$FEATURE_BRANCH'..."
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
+git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1
 
-# Step 4: Compare branches to find changed files
+# Step 5: Compare branches to find changed files
 echo "Comparing '$CURRENT_BRANCH' with '$FEATURE_BRANCH'..."
 CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
 
@@ -48,7 +51,7 @@ fi
 echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
 echo "$CHANGED_FILES"
 
-# Step 5: Create release folder and copy changed files
+# Step 6: Create release folder and copy changed files
 echo "Creating release folder at: $RELEASE_FOLDER..."
 mkdir -p "$RELEASE_FOLDER"
 
@@ -58,5 +61,5 @@ for file in $CHANGED_FILES; do
   echo "Copied changed file: $RELEASE_FOLDER/$file"
 done
 
-# Step 6: Completion message
+# Step 7: Completion message
 echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
