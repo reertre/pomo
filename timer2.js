@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Input arguments from GitLab pipeline
-CURRENT_BRANCH=$1   # Automatically provided by GitLab (e.g., CI_COMMIT_BRANCH)
-FEATURE_BRANCH=$2   # Automatically resolved by GitLab (e.g., CI_MERGE_REQUEST_SOURCE_BRANCH_NAME)
+CURRENT_BRANCH=$1   # Current branch in the pipeline
+FEATURE_BRANCH=$2   # Auto-detected latest feature branch
 RELEASE_FOLDER=$3   # Unique release folder based on pipeline ID
 
 echo "Current branch: $CURRENT_BRANCH"
-echo "Feature branch: $FEATURE_BRANCH"
+echo "Latest feature branch: $FEATURE_BRANCH"
 echo "Release folder: $RELEASE_FOLDER"
 
 # Step 1: Validate input
