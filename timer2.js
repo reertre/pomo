@@ -18,6 +18,7 @@ def main() -> None:
     file_type_log = sds_region.upper()
     cob_log = datetime.strptime(sds_snap_date, "%Y-%m-%d").strftime("%d-%b-%y")
 
+    # Initial status log
     P_STATUS = "CHECKING"
     fortInputFeedLog.add_log(
         P_FILE_TYPE=f"SDS_{file_type_log}_testdevraj",
@@ -26,14 +27,16 @@ def main() -> None:
         P_COB_DATE=cob_log,
     )
 
-    # Fetch all hierarchy data and set status
-    all_hierarchy_data = hierarchy_api.get_all_active()
-    if all_hierarchy_data is not None and "The snaps for this date is not available" in str(all_hierarchy_data):
-        logger.error("The snaps for this date is not available")
+    # Fetch hierarchy data
+    response = hierarchy_api.get_all_active()
+    if isinstance(response, dict) and "status_code" in response and response["status_code"] == 400:
+        # Handle specific API response for 400 status code
+        logger.error("The snaps for this date are not available")
         P_STATUS = "NOT AVAILABLE"
-    elif all_hierarchy_data:
+    elif response:  # If response has valid data
         P_STATUS = "AVAILABLE"
-    else:
+    else:  # Handle all other cases
+        logger.error("Unexpected response or no data returned")
         P_STATUS = "NOT AVAILABLE"
 
     # Log the final status
@@ -47,7 +50,7 @@ def main() -> None:
     # If data is available, proceed with feed creation
     if P_STATUS == "AVAILABLE":
         hierarchy_feed = HierarchyFeed()
-        hierarchy_feed_name = hierarchy_feed.feed(all_hierarchy_data)
+        hierarchy_feed_name = hierarchy_feed.feed(response)
         print(hierarchy_feed_name)
 
 if __name__ == "__main__":
