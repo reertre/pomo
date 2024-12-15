@@ -26,23 +26,15 @@ def main() -> None:
         P_COB_DATE=cob_log,
     )
 
-    # Try to fetch all hierarchy data
-    try:
-        all_hierarchy_data = hierarchy_api.get_all_active()
-        if all_hierarchy_data:
-            P_STATUS = "AVAILABLE"
-        else:
-            P_STATUS = "NOT AVAILABLE"
-
-    except Exception as e:
-        # Check for specific error message
-        error_message = str(e)
-        if "The snaps for this date is not available" in error_message:
-            logger.error(f"Specific error encountered: {error_message}")
-            P_STATUS = "NOT AVAILABLE"
-        else:
-            logger.error(f"Unexpected error encountered: {error_message}")
-            raise  # Reraise the exception if it's unexpected
+    # Fetch all hierarchy data and set status
+    all_hierarchy_data = hierarchy_api.get_all_active()
+    if all_hierarchy_data is not None and "The snaps for this date is not available" in str(all_hierarchy_data):
+        logger.error("The snaps for this date is not available")
+        P_STATUS = "NOT AVAILABLE"
+    elif all_hierarchy_data:
+        P_STATUS = "AVAILABLE"
+    else:
+        P_STATUS = "NOT AVAILABLE"
 
     # Log the final status
     fortInputFeedLog.add_log(
