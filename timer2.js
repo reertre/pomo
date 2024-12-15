@@ -1,59 +1,96 @@
-from utils import configure_logging, System, SystemFeed, AliasFeed, FortInputFeedLog, Configurations
-from datetime import datetime
-logger = configure_logging("default_system")
+def run(self, **kwargs):
+    keys = kwargs.keys()
 
-def main() -> None:
-    system_api = System()
-    fortInputFeedLog = FortInputFeedLog()
-    
-    # Check all system data
-    all_system_data = system_api.get_all_active()
-    system_feed = SystemFeed()
-    alias_feed = AliasFeed()
+    required_arguments = [
+        "url",
+        "criteria",
+        "take",
+        "fields",
+        "headers",
+    ]
 
-    # Generate feeds
-    system_feed_name = system_feed.feed(all_system_data)
-    alias_feed_name = alias_feed.feed(all_system_data)
-    
-    # Fetch configuration details
-    config = Configurations()
-    snap_details = config.get_current_snap()
-    
-    sds_region = (snap_details["sds_system_snaps"] if "sds_system_snaps" in snap_details else None)
-    sds_snap_date = snap_details["snap_date"] if "snap_date" in snap_details else None
-    
-    if not sds_snap_date:  # No snap date provided
-        logger.warning("No snap date provided. Unable to check snap status.")
-        P_STATUS = "Unavailable"
-    else:
-        logger.info(f"Region provided is {sds_region}")
-        logger.info(f"Snap date provided is {sds_snap_date}")
+    # Validate required arguments
+    for argument in required_arguments:
+        if argument not in keys:
+            message = f"{argument} was not provided."
+            logger.exception(message)
+            raise Exception(message)
 
-        file_type_log = sds_region.upper()
-        cob_log = datetime.strptime(sds_snap_date, "%Y-%m-%d").strftime("%d-%b-%Y")
+    url = kwargs["url"]
+    criteria = kwargs["criteria"]
+    snap = self.common_snap_config
+    after_id = "0"
+    take = kwargs["take"]
+    fields = kwargs["fields"]
+    headers = kwargs["headers"]
+
+    total_fetched = 0
+    ittr = 0
+    outputs = list()
+
+    while after_id is not None:
+        body = {
+            "criteria": criteria,
+            "snap": snap,
+            "afterId": after_id,
+            "take": take,
+            "fields": fields,
+        }
+
+        ittr += 1
+        logger.debug(
+            f"Iteration: {ittr}\nAfter_Id: {after_id}\nTotal Fetched: {total_fetched}"
+        )
+
+        body_json = json.dumps(body)
+        print(body_json)
         
-        # Check snap availability for the given date
+        # API Call
         try:
-            # Replace this with your API call for checking snaps by date
-            all_snaps = system_api.get_all_active()  # Simulating API call
-            if all_snaps:
-                P_STATUS = "Available"
-            else:
-                P_STATUS = "Unavailable"
+            output = requests.post(
+                url=url,
+                headers=headers,
+                data=body_json,
+                cert=(self.crt_file, self.key_file),
+                verify=False,
+                stream=True,
+            )
         except Exception as e:
-            logger.error(f"Error while checking snaps for {sds_snap_date}: {e}")
-            P_STATUS = "Unavailable"
-    
-    # Add log
-    fortInputFeedLog.add_log(
-        P_FILE_TYPE=f"SDS ({file_type_log})",
-        P_STATUS=P_STATUS,
-        P_LOAD_MESSAGE=f"Checking System snaps for {file_type_log} region for cob date - {cob_log}",
-        P_COB_DATE=cob_log,
-    )
-    
-    print(alias_feed_name)
-    print(system_feed_name)
+            message = f"API call failed: {str(e)}"
+            logger.exception(message)
+            raise Exception(message)
 
-if __name__ == "__main__":
-    main()
+        # Handle status codes
+        if output.status_code != 200:
+            if output.status_code == 400:
+                # Snap not available for the given date
+                logger.warning("Snap not available for the given date.")
+                return "NOT AVAILABLE"
+            else:
+                message = f"For ittr: {ittr}\nReceived this status code from SDS: {str(output.status_code)}. Expected 200"
+                logger.exception(message)
+                raise Exception(message)
+
+        # Handle JSON response
+        try:
+            output_response = output.json()
+        except Exception:
+            message = f"For ittr: {ittr}\nThe output was not in the json format"
+            logger.exception(message)
+            raise Exception(message)
+
+        # Check if response is a list
+        if not isinstance(output_response, list):
+            return output_response
+
+        # Handle empty response
+        if len(output_response) == 0:
+            after_id = None
+            continue
+
+        total_fetched += len(output_response)
+        outputs.extend(output_response)
+        last_fetched = output_response[-1]
+        after_id = last_fetched.get("id", None)
+
+    return outputs
