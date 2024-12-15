@@ -1,48 +1,59 @@
-#!/bin/bash
+from utils import configure_logging, System, SystemFeed, AliasFeed, FortInputFeedLog, Configurations
+from datetime import datetime
+logger = configure_logging("default_system")
 
-# Input Variables
-CURRENT_BRANCH=$CI_COMMIT_BRANCH
-TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-NEW_RELEASE_FOLDER="branches/releases/release_${TIMESTAMP}"
+def main() -> None:
+    system_api = System()
+    fortInputFeedLog = FortInputFeedLog()
+    
+    # Check all system data
+    all_system_data = system_api.get_all_active()
+    system_feed = SystemFeed()
+    alias_feed = AliasFeed()
 
-echo "Fetching all remote branches..."
-git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
+    # Generate feeds
+    system_feed_name = system_feed.feed(all_system_data)
+    alias_feed_name = alias_feed.feed(all_system_data)
+    
+    # Fetch configuration details
+    config = Configurations()
+    snap_details = config.get_current_snap()
+    
+    sds_region = (snap_details["sds_system_snaps"] if "sds_system_snaps" in snap_details else None)
+    sds_snap_date = snap_details["snap_date"] if "snap_date" in snap_details else None
+    
+    if not sds_snap_date:  # No snap date provided
+        logger.warning("No snap date provided. Unable to check snap status.")
+        P_STATUS = "Unavailable"
+    else:
+        logger.info(f"Region provided is {sds_region}")
+        logger.info(f"Snap date provided is {sds_snap_date}")
 
-# Detect the feature branch
-if [[ "$CURRENT_BRANCH" == feature/* ]]; then
-  FEATURE_BRANCH="$CURRENT_BRANCH"
-else
-  FEATURE_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/feature/* --format='%(refname:lstrip=3)' | head -n 1)
-fi
+        file_type_log = sds_region.upper()
+        cob_log = datetime.strptime(sds_snap_date, "%Y-%m-%d").strftime("%d-%b-%Y")
+        
+        # Check snap availability for the given date
+        try:
+            # Replace this with your API call for checking snaps by date
+            all_snaps = system_api.get_all_active()  # Simulating API call
+            if all_snaps:
+                P_STATUS = "Available"
+            else:
+                P_STATUS = "Unavailable"
+        except Exception as e:
+            logger.error(f"Error while checking snaps for {sds_snap_date}: {e}")
+            P_STATUS = "Unavailable"
+    
+    # Add log
+    fortInputFeedLog.add_log(
+        P_FILE_TYPE=f"SDS ({file_type_log})",
+        P_STATUS=P_STATUS,
+        P_LOAD_MESSAGE=f"Checking System snaps for {file_type_log} region for cob date - {cob_log}",
+        P_COB_DATE=cob_log,
+    )
+    
+    print(alias_feed_name)
+    print(system_feed_name)
 
-if [[ -z "$FEATURE_BRANCH" ]]; then
-  echo "No feature branch detected. Exiting..."
-  exit 1
-fi
-
-# Validate and fetch the feature branch
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1 || { echo "Error fetching feature branch"; exit 1; }
-
-# Compare branches and find changed files
-CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$FEATURE_BRANCH")
-
-if [[ -z "$CHANGED_FILES" ]]; then
-  echo "No changes detected between '$CURRENT_BRANCH' and '$FEATURE_BRANCH'."
-  exit 0
-fi
-
-# Create the release folder
-mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit 1; }
-echo "Creating release folder: $NEW_RELEASE_FOLDER"
-
-# Process changed files
-for file in $CHANGED_FILES; do
-  mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
-  git show "$FEATURE_BRANCH:$file" > "$NEW_RELEASE_FOLDER/$file" || echo "Error processing $file"
-done
-
-echo "Processed changed files into $NEW_RELEASE_FOLDER"
-
-# Export release folder for GitLab CI pipeline
-echo "NEW_RELEASE_FOLDER=$NEW_RELEASE_FOLDER" > new_release_folder.env
-echo "Release folder created and saved: $NEW_RELEASE_FOLDER"
+if __name__ == "__main__":
+    main()
