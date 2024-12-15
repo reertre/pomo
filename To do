@@ -1,47 +1,64 @@
-from utils.configuration.configuration import Configurations
-from utils.feed.feed import Feed
+from utils import configure_logging, System, SystemFeed, AliasFeed, FortInputFeedLog, Configurations
+from datetime import datetime
 
-from re import sub
-from typing import List, Dict
+logger = configure_logging("default_system")
 
+def main() -> None:
+    fortinputfeedlog = FortInputFeedLog()
+    system_api = System()
 
-class SystemFeed(Feed):
-    def __init__(self):
-        Feed.__init__(self)
+    # Initial status for checking
+    P_STATUS = "Checking"
+    logger.info("Checking the status for system snaps")
+
+    # Fetch all active system data
+    all_system_data = system_api.get_all_active()
+
+    # Determine if snap data is available
+    if all_system_data:
+        P_STATUS = "Available"  # Snap is available in the API
+        logger.info("Snap is available in the API")
+    else:
+        P_STATUS = "Not Available"  # Snap not present in the API
+        logger.warning("Snap is NOT available in the API")
+
+    # Add log entry for status
+    fortinputfeedlog.add_log(
+        P_FILE_TYPE="SDS(default_system)",
+        P_STATUS=P_STATUS,
+        P_LOAD_MESSAGE="Checking System snaps",
+        P_COB_DATE=datetime.now().strftime("%d-%b-%y")
+    )
+
+    # Proceed only if P_STATUS is Available
+    if P_STATUS == "Available":
+        aliasFeed = AliasFeed()
+        alias_feed_name = aliasFeed.feed(all_system_data)
+
+        # Add further logs
         config = Configurations()
-        self._sds_system_feed_attributes_config = config.get_sds_system_feed_attributes()
+        snap_details = config.get_current_snap()
+        sds_region = snap_details["sds_system_snaps"] if "sds_system_snaps" in snap_details else None
+        sds_snap_date = snap_details["snap_date"] if "snap_date" in snap_details else None
 
-    def _system_feed_content(self, system_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_system_feed_attributes_config:
-            raise Exception("Did not find attributes to create system feed.")
-        
-        headers = self._sds_system_feed_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]*", "", headers).split(",")
+        logger.info(f"Region provided is {sds_region}")
+        logger.info(f"Snap date provided is {sds_snap_date}")
 
-        all_system_information = list()
+        cob_log = datetime.strptime(sds_snap_date, "%Y-%m-%d").strftime("%d-%b-%y") if sds_snap_date else "N/A"
 
-        # Iterate through each system in the data
-        for system in system_data:
-            curr_system_info = dict()
-            for header in headers:
-                # Extract data for each header if it exists in the system
-                curr_system_info[header] = (
-                    system[header] if header in system else None
-                )
-            all_system_information.append(curr_system_info)
+        fortinputfeedlog.add_log(
+            P_FILE_TYPE="SDS(default_system)",
+            P_STATUS=P_STATUS,
+            P_LOAD_MESSAGE=f"Checking System snaps for {alias_feed_name} region for cob date {cob_log}",
+            P_COB_DATE=cob_log
+        )
 
-        # Create the feed file with extracted information
-        return self._create_feed_file(headers, all_system_information, feed_name)
+        print(f"Alias Feed Name: {alias_feed_name}")
+    else:
+        logger.info("Skipping feed generation due to missing snap data.")
 
-    def feed(self, system_data):
-        # Generate the feed name
-        feed_name = self._feed_name(sds_entity="system_feed", is_json=False)
+    logger.info("Process Completed.")
 
-        # Generate the feed content
-        feed_file_content = self._system_feed_content(system_data, feed_name)
 
-        # Save the feed file
-        self._save(feed_name, content=feed_file_content)
-
-        # Return the feed name for reference
-        return feed_name
+if __name__ == "__main__":
+    main()
