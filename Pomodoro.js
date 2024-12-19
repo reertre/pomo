@@ -1,67 +1,57 @@
+from typing import List, Dict
 from utils.configuration.configuration import Configurations
 from utils.feed.feed import Feed
-
 from re import sub
-from typing import List, Dict
 
-
-class AliasFeed(Feed):
+class HierarchyLevelFeed(Feed):
     def __init__(self):
-        Feed.__init__(self)
+        super().__init__()
         config = Configurations()
-        self._sds_alias_feed_attributes_config = config.get_sds_alias_feed_attributes()
+        self._sds_hierarchy_feed_attributes_config = config.get_sds_hierarchylevel_attributes()
 
-    def _alias_feed_content(self, alias_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_alias_feed_attributes_config:
-            raise Exception("Did not find attributes to create alias feed.")
+    def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
+        if "attributes" not in self._sds_hierarchy_feed_attributes_config:
+            raise Exception("Did not find attributes to create Hierarchy feed.")
 
-        headers = self._sds_alias_feed_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]*", "", headers).split(",")
+        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]+", "", headers).split(",")
+        
+        # Create a dictionary to hold the hierarchy columns dynamically
+        column_headers = []
+        for hierarchy_level in [
+            "Level 10",
+            "Level 9",
+            "Level 8",
+            "Level 7",
+            "Level 6",
+            "Subproduct",
+            "Business Area",
+            "Product Area",
+            "Company",
+            "Group",
+        ]:
+            column_headers.append(f"{hierarchy_level} ID")
+            column_headers.append(f"{hierarchy_level} Name")
 
-        alias_feed_outputs = list()
-        alias_fields = ["value", "description", "name"]
+        # Prepare output rows
+        hierarchy_feed_outputs = []
+        for hierarchy in hierarchy_data:
+            curr_hierarchy_info = {header: None for header in column_headers}
 
-        # Iterate over each alias_book entry
-        for alias_book in alias_data:
-            if "alias" not in alias_book:
-                continue
+            # Populate columns dynamically
+            for header in headers:
+                hierarchy_type = hierarchy.get("type", "")
+                if hierarchy_type:
+                    curr_hierarchy_info[f"{hierarchy_type} ID"] = str(hierarchy["id"]) if "id" in hierarchy else None
+                    curr_hierarchy_info[f"{hierarchy_type} Name"] = str(hierarchy["name"]) if "name" in hierarchy else None
 
-            alias_feed = alias_book["alias"]
-            if not isinstance(alias_feed, list) or len(alias_feed) == 0:
-                continue
+            hierarchy_feed_outputs.append(curr_hierarchy_info)
 
-            alias_book_id = str(alias_book["id"]) if "id" in alias_book else None
+        # Return feed with headers and hierarchy information
+        return self._create_feed_file(column_headers, hierarchy_feed_outputs, feed_name)
 
-            # Iterate over alias_feed entries
-            for alias_entry in alias_feed:
-                curr_alias_info = dict()
-
-                # Populate headers
-                for header in headers:
-                    if header == "alias_book_id":
-                        curr_alias_info[header] = alias_book_id
-                    elif header == "id":
-                        curr_alias_info[header] = alias_book_id  # Map the alias book ID to the "id" field
-                    elif header in alias_entry:
-                        curr_alias_info[header] = str(alias_entry[header])
-                    else:
-                        curr_alias_info[header] = None
-
-                # Append alias information
-                alias_feed_outputs.append(curr_alias_info)
-
-        # Create the feed file with the extracted alias information
-        return self._create_feed_file(headers, alias_feed_outputs, feed_name)
-
-    def feed(self, alias_data):
-        # Generate the feed name
-        feed_name = self._feed_name(sds_entity="alias_feed", is_json=False)
-
-        # Generate the feed content
-        feed_file_content = self._alias_feed_content(alias_data, feed_name)
-
-        # Save the feed file
+    def feed(self, hierarchy_data):
+        feed_name = self._feed_name(sds_entity="hierarchylevel_feed", is_json=False)
+        feed_file_content = self._hierarchy_feed_content(hierarchy_data, feed_name)
         self._save(feed_name, content=feed_file_content)
-
-        # Return the feed name for reference
         return feed_name
