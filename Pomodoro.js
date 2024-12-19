@@ -1,57 +1,41 @@
-from typing import List, Dict
-from utils.configuration.configuration import Configurations
-from utils.feed.feed import Feed
-from re import sub
-
-class HierarchyLevelFeed(Feed):
+class HierarchyProcessor:
     def __init__(self):
-        super().__init__()
-        config = Configurations()
-        self._sds_hierarchy_feed_attributes_config = config.get_sds_hierarchylevel_attributes()
+        pass
 
-    def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_hierarchy_feed_attributes_config:
-            raise Exception("Did not find attributes to create Hierarchy feed.")
+    def process_hierarchy(self, hierarchy_data: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Processes hierarchy data to map hierarchy levels to their respective IDs and Names dynamically.
+        """
+        processed_data = []
 
-        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]+", "", headers).split(",")
-        
-        # Create a dictionary to hold the hierarchy columns dynamically
-        column_headers = []
-        for hierarchy_level in [
-            "Level 10",
-            "Level 9",
-            "Level 8",
-            "Level 7",
-            "Level 6",
-            "Subproduct",
-            "Business Area",
-            "Product Area",
-            "Company",
-            "Group",
-        ]:
-            column_headers.append(f"{hierarchy_level} ID")
-            column_headers.append(f"{hierarchy_level} Name")
+        for row in hierarchy_data:
+            processed_row = {}
 
-        # Prepare output rows
-        hierarchy_feed_outputs = []
-        for hierarchy in hierarchy_data:
-            curr_hierarchy_info = {header: None for header in column_headers}
+            # Process levels 10 to 6 dynamically
+            for level in range(10, 5, -1):  # Levels 10 to 6
+                id_key = f"level_{level}_id"
+                name_key = f"level_{level}_name"
+                if id_key in row and name_key in row:
+                    processed_row[f"Level {level} ID"] = row[id_key]
+                    processed_row[f"Level {level} Name"] = row[name_key]
 
-            # Populate columns dynamically
-            for header in headers:
-                hierarchy_type = hierarchy.get("type", "")
-                if hierarchy_type:
-                    curr_hierarchy_info[f"{hierarchy_type} ID"] = str(hierarchy["id"]) if "id" in hierarchy else None
-                    curr_hierarchy_info[f"{hierarchy_type} Name"] = str(hierarchy["name"]) if "name" in hierarchy else None
+            # Process Subproduct, Business Area, Product Area, Company, Group
+            if "subproduct_id" in row and "subproduct_name" in row:
+                processed_row["Subproduct ID"] = row["subproduct_id"]
+                processed_row["Subproduct Name"] = row["subproduct_name"]
+            if "business_area_id" in row and "business_area_name" in row:
+                processed_row["Business Area ID"] = row["business_area_id"]
+                processed_row["Business Area Name"] = row["business_area_name"]
+            if "product_area_id" in row and "product_area_name" in row:
+                processed_row["Product Area ID"] = row["product_area_id"]
+                processed_row["Product Area Name"] = row["product_area_name"]
+            if "company_id" in row and "company_name" in row:
+                processed_row["Company ID"] = row["company_id"]
+                processed_row["Company Name"] = row["company_name"]
+            if "group_id" in row and "group_name" in row:
+                processed_row["Group ID"] = row["group_id"]
+                processed_row["Group Name"] = row["group_name"]
 
-            hierarchy_feed_outputs.append(curr_hierarchy_info)
+            processed_data.append(processed_row)
 
-        # Return feed with headers and hierarchy information
-        return self._create_feed_file(column_headers, hierarchy_feed_outputs, feed_name)
-
-    def feed(self, hierarchy_data):
-        feed_name = self._feed_name(sds_entity="hierarchylevel_feed", is_json=False)
-        feed_file_content = self._hierarchy_feed_content(hierarchy_data, feed_name)
-        self._save(feed_name, content=feed_file_content)
-        return feed_name
+        return processed_data
