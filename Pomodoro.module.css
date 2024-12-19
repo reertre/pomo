@@ -6,40 +6,24 @@ class HierarchyLevelFeed(Feed):
 
     def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
         if "attributes" not in self._sds_hierarchy_feed_attributes_config:
-            raise Exception("Did not find attributes to create Hierarchy feed.")
-        
-        headers = [
-            "Level 10 ID", "Level 10 Name",
-            "Level 9 ID", "Level 9 Name",
-            "Level 8 ID", "Level 8 Name",
-            "Level 7 ID", "Level 7 Name",
-            "Level 6 ID", "Level 6 Name",
-            "Subproduct ID", "Subproduct Name",
-            "Business Area ID", "Business Area Name",
-            "Product Area ID", "Product Area Name"
-        ]
+            raise Exception("Did not find attributes to create hierarchy feed.")
 
-        hierarchy_feed_outputs = list()
+        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
+        headers = headers.split(",")
 
+        # Initialize structured output for levels
+        hierarchy_feed_outputs = []
+
+        # Iterate through hierarchy data
         for hierarchy in hierarchy_data:
             curr_hierarchy_info = {
-                "Level 10 ID": hierarchy["id"] if hierarchy["type"] == "Level10" else None,
-                "Level 10 Name": hierarchy["name"] if hierarchy["type"] == "Level10" else None,
-                "Level 9 ID": hierarchy["id"] if hierarchy["type"] == "Level9" else None,
-                "Level 9 Name": hierarchy["name"] if hierarchy["type"] == "Level9" else None,
-                "Level 8 ID": hierarchy["id"] if hierarchy["type"] == "Level8" else None,
-                "Level 8 Name": hierarchy["name"] if hierarchy["type"] == "Level8" else None,
-                "Level 7 ID": hierarchy["id"] if hierarchy["type"] == "Level7" else None,
-                "Level 7 Name": hierarchy["name"] if hierarchy["type"] == "Level7" else None,
-                "Level 6 ID": hierarchy["id"] if hierarchy["type"] == "Level6" else None,
-                "Level 6 Name": hierarchy["name"] if hierarchy["type"] == "Level6" else None,
-                "Subproduct ID": hierarchy["id"] if hierarchy["type"] == "Subproduct" else None,
-                "Subproduct Name": hierarchy["name"] if hierarchy["type"] == "Subproduct" else None,
-                "Business Area ID": hierarchy["id"] if hierarchy["type"] == "BusinessArea" else None,
-                "Business Area Name": hierarchy["name"] if hierarchy["type"] == "BusinessArea" else None,
-                "Product Area ID": hierarchy["id"] if hierarchy["type"] == "ProductArea" else None,
-                "Product Area Name": hierarchy["name"] if hierarchy["type"] == "ProductArea" else None
+                f"{header}_id": str(hierarchy.get(header, {}).get('id', '')) if hierarchy.get(header) else ''
+                for header in headers
             }
+            curr_hierarchy_info.update({
+                f"{header}_name": str(hierarchy.get(header, {}).get('name', '')) if hierarchy.get(header) else ''
+                for header in headers
+            })
             hierarchy_feed_outputs.append(curr_hierarchy_info)
 
         return self._create_feed_file(headers, hierarchy_feed_outputs, feed_name)
