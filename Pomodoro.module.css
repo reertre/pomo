@@ -1,59 +1,45 @@
-import requests
-import json
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
+from re import sub
+from typing import List, Dict
 
-# Set up the URL for the request
-url = "http://entityservice_url/system/find"  # Replace with the actual base URL
 
-# Define the JSON payload for the request body
-payload = {
-    "criteria": {
-        "operator": "and",
-        "items": [
-            {
-                "operator": "gte",
-                "field": "id",
-                "value": 0
-            }
-        ]
-    },
-    "fields": [
-        "alias",
-        "comment",
-        "created_on",
-        "deprecated",
-        "dms_bulk_no",
-        "dms_bulk_ref",
-        "override",
-        "format",
-        "format_regex",
-        "in_scope_entities",
-        "refreshed_on",
-        "code",
-        "description",
-        "id",
-        "name",
-        "unique_maps",
-        "unique_system_map",
-        "updated_by",
-        "version",
-        "workflow_no"
-    ],
-    "take": 10
-}
+class HierarchyLevelFeed(Feed):
+    def __init__(self):
+        Feed.__init__(self)
+        config = Configurations()
+        self._sds_hierarchy_feed_attributes_config = config.get_sds_hierarchylevel_attributes()
 
-# Define headers
-headers = {
-    "Content-Type": "application/json"
-}
+    def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
+        if "attributes" not in self._sds_hierarchy_feed_attributes_config:
+            raise Exception("Did not find attributes to create Hierarchy feed.")
 
-# Make the POST request
-response = requests.post(url, headers=headers, json=payload)
+        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-# Check if the request was successful
-if response.status_code == 200:
-    # Print the JSON response in a readable format
-    print(json.dumps(response.json(), indent=4))
-else:
-    # Print an error message if the request failed
-    print(f"Request failed with status code {response.status_code}")
-    print(response.text)
+        # Prepare columns for Level10, Level09, ..., and so on
+        hierarchy_feed_outputs = []
+        for hierarchy in hierarchy_data:
+            curr_hierarchy_info = {}
+            
+            for level in range(10, 0, -1):  # Iterating from Level10 to Level01
+                level_id_key = f"Level{level}Id"
+                level_name_key = f"Level{level}Name"
+                
+                curr_hierarchy_info[level_id_key] = hierarchy.get("id") if hierarchy.get("type") == f"Level{level}" else None
+                curr_hierarchy_info[level_name_key] = hierarchy.get("name") if hierarchy.get("type") == f"Level{level}" else None
+
+            # Append to outputs
+            hierarchy_feed_outputs.append(curr_hierarchy_info)
+
+        # Include headers for all levels
+        level_headers = [f"Level{level}Id,Level{level}Name" for level in range(10, 0, -1)]
+        all_headers = ",".join(level_headers)
+
+        return self._create_feed_file(all_headers.split(","), hierarchy_feed_outputs, feed_name)
+
+    def feed(self, hierarchy_data):
+        feed_name = self._feed_name(sds_entity="hierarchylevel_feed", is_json=False)
+        feed_file_content = self._hierarchy_feed_content(hierarchy_data, feed_name)
+        self._save(feed_name, content=feed_file_content)
+        return feed_name
