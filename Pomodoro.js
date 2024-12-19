@@ -1,69 +1,59 @@
 from typing import List, Dict
 
-class HierarchyProcessor:
-    def __init__(self, hierarchy_data: List[Dict[str, str]]):
-        self.hierarchy_data = hierarchy_data
-
-    def process_hierarchy(self) -> List[Dict[str, str]]:
-        result = []
-
-        for row in self.hierarchy_data:
-            processed_row = {}
-
-            # Explicitly process each hierarchy level
-            if "level_10_id" in row and "level_10_name" in row:
-                processed_row["Level 10 ID"] = row["level_10_id"]
-                processed_row["Level 10 Name"] = row["level_10_name"]
-            if "level_9_id" in row and "level_9_name" in row:
-                processed_row["Level 9 ID"] = row["level_9_id"]
-                processed_row["Level 9 Name"] = row["level_9_name"]
-            if "level_8_id" in row and "level_8_name" in row:
-                processed_row["Level 8 ID"] = row["level_8_id"]
-                processed_row["Level 8 Name"] = row["level_8_name"]
-            if "level_7_id" in row and "level_7_name" in row:
-                processed_row["Level 7 ID"] = row["level_7_id"]
-                processed_row["Level 7 Name"] = row["level_7_name"]
-            if "level_6_id" in row and "level_6_name" in row:
-                processed_row["Level 6 ID"] = row["level_6_id"]
-                processed_row["Level 6 Name"] = row["level_6_name"]
-
-            # Explicitly process additional attributes
-            if "subproduct_id" in row and "subproduct_name" in row:
-                processed_row["Subproduct ID"] = row["subproduct_id"]
-                processed_row["Subproduct Name"] = row["subproduct_name"]
-            if "business_area_id" in row and "business_area_name" in row:
-                processed_row["Business Area ID"] = row["business_area_id"]
-                processed_row["Business Area Name"] = row["business_area_name"]
-            if "product_area_id" in row and "product_area_name" in row:
-                processed_row["Product Area ID"] = row["product_area_id"]
-                processed_row["Product Area Name"] = row["product_area_name"]
-            if "company_id" in row and "company_name" in row:
-                processed_row["Company ID"] = row["company_id"]
-                processed_row["Company Name"] = row["company_name"]
-            if "group_id" in row and "group_name" in row:
-                processed_row["Group ID"] = row["group_id"]
-                processed_row["Group Name"] = row["group_name"]
-
-            # Append processed row to result
-            result.append(processed_row)
-
-        return result
-
-
-# Integration with feed method
 class HierarchyFeed:
-    def __init__(self, hierarchy_data: List[Dict[str, str]]):
-        self.hierarchy_processor = HierarchyProcessor(hierarchy_data)
+    def __init__(self):
+        config = Configurations()
+        self.sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
+    
+    def _hierarchy_content(self, hierarchy_data: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        # Prepare the final output
+        all_hierarchy_information = []
 
-    def feed(self):
-        # Process the hierarchy data
-        processed_data = self.hierarchy_processor.process_hierarchy()
+        for hierarchy in hierarchy_data:
+            curr_hierarchy_info = {}
 
-        # Define the feed name (Example: replace with dynamic logic if needed)
-        feed_name = "Hierarchy_Feed"
+            # Explicit handling for each level (no for loop)
+            if "level_10_id" in hierarchy and "level_10_name" in hierarchy:
+                curr_hierarchy_info["Level 10 ID"] = hierarchy["level_10_id"]
+                curr_hierarchy_info["Level 10 Name"] = hierarchy["level_10_name"]
+            if "level_9_id" in hierarchy and "level_9_name" in hierarchy:
+                curr_hierarchy_info["Level 9 ID"] = hierarchy["level_9_id"]
+                curr_hierarchy_info["Level 9 Name"] = hierarchy["level_9_name"]
+            if "level_8_id" in hierarchy and "level_8_name" in hierarchy:
+                curr_hierarchy_info["Level 8 ID"] = hierarchy["level_8_id"]
+                curr_hierarchy_info["Level 8 Name"] = hierarchy["level_8_name"]
+            if "level_7_id" in hierarchy and "level_7_name" in hierarchy:
+                curr_hierarchy_info["Level 7 ID"] = hierarchy["level_7_id"]
+                curr_hierarchy_info["Level 7 Name"] = hierarchy["level_7_name"]
+            if "level_6_id" in hierarchy and "level_6_name" in hierarchy:
+                curr_hierarchy_info["Level 6 ID"] = hierarchy["level_6_id"]
+                curr_hierarchy_info["Level 6 Name"] = hierarchy["level_6_name"]
 
-        # Simulate saving or returning processed data
-        return {
-            "feed_name": feed_name,
-            "processed_data": processed_data
-        }
+            # Explicit handling for additional attributes
+            if "subproduct_id" in hierarchy and "subproduct_name" in hierarchy:
+                curr_hierarchy_info["Subproduct ID"] = hierarchy["subproduct_id"]
+                curr_hierarchy_info["Subproduct Name"] = hierarchy["subproduct_name"]
+            if "business_area_id" in hierarchy and "business_area_name" in hierarchy:
+                curr_hierarchy_info["Business Area ID"] = hierarchy["business_area_id"]
+                curr_hierarchy_info["Business Area Name"] = hierarchy["business_area_name"]
+            if "product_area_id" in hierarchy and "product_area_name" in hierarchy:
+                curr_hierarchy_info["Product Area ID"] = hierarchy["product_area_id"]
+                curr_hierarchy_info["Product Area Name"] = hierarchy["product_area_name"]
+            if "company_id" in hierarchy and "company_name" in hierarchy:
+                curr_hierarchy_info["Company ID"] = hierarchy["company_id"]
+                curr_hierarchy_info["Company Name"] = hierarchy["company_name"]
+            if "group_id" in hierarchy and "group_name" in hierarchy:
+                curr_hierarchy_info["Group ID"] = hierarchy["group_id"]
+                curr_hierarchy_info["Group Name"] = hierarchy["group_name"]
+
+            # Append to the final output
+            all_hierarchy_information.append(curr_hierarchy_info)
+
+        return all_hierarchy_information
+
+    def feed(self, hierarchy_data: List[Dict[str, str]]) -> str:
+        # Keep feed method unchanged
+        feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
+        feed_file_content = self._hierarchy_content(hierarchy_data)
+        self._save(feed_name, feed_file_content)
+        return feed_name
