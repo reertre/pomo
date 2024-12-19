@@ -7,22 +7,27 @@ class HierarchyProcessor:
     def process_hierarchy(self) -> List[Dict[str, str]]:
         result = []
 
-        # Iterate over each row in the hierarchy data
         for row in self.hierarchy_data:
             processed_row = {}
-            
-            # Process hierarchy levels dynamically
-            for level in range(10, 5, -1):  # Levels 10 to 6
-                level_type = f"Level {level}"
-                id_key = f"level_{level}_id"
-                name_key = f"level_{level}_name"
 
-                # Map IDs and Names for each hierarchy level
-                if id_key in row and name_key in row:
-                    processed_row[f"{level_type} ID"] = row[id_key]
-                    processed_row[f"{level_type} Name"] = row[name_key]
+            # Explicitly process each hierarchy level
+            if "level_10_id" in row and "level_10_name" in row:
+                processed_row["Level 10 ID"] = row["level_10_id"]
+                processed_row["Level 10 Name"] = row["level_10_name"]
+            if "level_9_id" in row and "level_9_name" in row:
+                processed_row["Level 9 ID"] = row["level_9_id"]
+                processed_row["Level 9 Name"] = row["level_9_name"]
+            if "level_8_id" in row and "level_8_name" in row:
+                processed_row["Level 8 ID"] = row["level_8_id"]
+                processed_row["Level 8 Name"] = row["level_8_name"]
+            if "level_7_id" in row and "level_7_name" in row:
+                processed_row["Level 7 ID"] = row["level_7_id"]
+                processed_row["Level 7 Name"] = row["level_7_name"]
+            if "level_6_id" in row and "level_6_name" in row:
+                processed_row["Level 6 ID"] = row["level_6_id"]
+                processed_row["Level 6 Name"] = row["level_6_name"]
 
-            # Process additional hierarchy attributes: Subproduct, Business Area, Product Area, Company, Group
+            # Explicitly process additional attributes
             if "subproduct_id" in row and "subproduct_name" in row:
                 processed_row["Subproduct ID"] = row["subproduct_id"]
                 processed_row["Subproduct Name"] = row["subproduct_name"]
@@ -39,7 +44,7 @@ class HierarchyProcessor:
                 processed_row["Group ID"] = row["group_id"]
                 processed_row["Group Name"] = row["group_name"]
 
-            # Append processed row to the result list
+            # Append processed row to result
             result.append(processed_row)
 
         return result
