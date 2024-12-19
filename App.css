@@ -22,13 +22,15 @@ class HierarchyLevelFeed(Feed):
         headers = self._sds_hierarchy_attributes_config["attributes"]
         headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
+        # Preprocess `hierarchy_data` into a dictionary for O(1) lookup
+        hierarchy_dict = {item.get("type"): item for item in hierarchy_data}
+
         # Initialize the flattened structure
         flattened_row = {}
         hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
 
         for level in hierarchy_levels:
-            # Filter data for the current level using headers dynamically
-            level_data = next((item for item in hierarchy_data if item.get("type") == level), None)
+            level_data = hierarchy_dict.get(level)
             if level_data:
                 for header in headers:
                     if header in ["id", "name"]:
