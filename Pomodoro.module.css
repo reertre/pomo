@@ -1,3 +1,8 @@
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
+from re import sub
+from typing import List, Dict
+
 class HierarchyLevelFeed(Feed):
     def __init__(self):
         Feed.__init__(self)
@@ -6,26 +11,53 @@ class HierarchyLevelFeed(Feed):
 
     def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
         if "attributes" not in self._sds_hierarchy_feed_attributes_config:
-            raise Exception("Did not find attributes to create hierarchy feed.")
+            raise Exception("Did not find attributes to create Hierarchy feed.")
 
-        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
-        headers = headers.split(",")
+        headers = [
+            "Level 10id", "Level 10name",
+            "Level 9id", "Level 9name",
+            "Level 8id", "Level 8name",
+            "Level 7id", "Level 7name",
+            "Level 6id", "Level 6name",
+            "Subproductid", "Subproductname",
+            "Business areaid", "Business area name",
+            "Product areaid", "Product area name"
+        ]
 
-        # Initialize structured output for levels
-        hierarchy_feed_outputs = []
+        hierarchy_feed_outputs = list()
 
-        # Iterate through hierarchy data
+        # Process each hierarchy entry and organize data into columns
         for hierarchy in hierarchy_data:
-            curr_hierarchy_info = {
-                f"{header}_id": str(hierarchy.get(header, {}).get('id', '')) if hierarchy.get(header) else ''
-                for header in headers
-            }
-            curr_hierarchy_info.update({
-                f"{header}_name": str(hierarchy.get(header, {}).get('name', '')) if hierarchy.get(header) else ''
-                for header in headers
-            })
+            curr_hierarchy_info = dict()
+
+            # Populate columns for each hierarchy level
+            curr_hierarchy_info["Level 10id"] = hierarchy.get("id") if hierarchy.get("type") == "Level10" else None
+            curr_hierarchy_info["Level 10name"] = hierarchy.get("name") if hierarchy.get("type") == "Level10" else None
+
+            curr_hierarchy_info["Level 9id"] = hierarchy.get("id") if hierarchy.get("type") == "Level9" else None
+            curr_hierarchy_info["Level 9name"] = hierarchy.get("name") if hierarchy.get("type") == "Level9" else None
+
+            curr_hierarchy_info["Level 8id"] = hierarchy.get("id") if hierarchy.get("type") == "Level8" else None
+            curr_hierarchy_info["Level 8name"] = hierarchy.get("name") if hierarchy.get("type") == "Level8" else None
+
+            curr_hierarchy_info["Level 7id"] = hierarchy.get("id") if hierarchy.get("type") == "Level7" else None
+            curr_hierarchy_info["Level 7name"] = hierarchy.get("name") if hierarchy.get("type") == "Level7" else None
+
+            curr_hierarchy_info["Level 6id"] = hierarchy.get("id") if hierarchy.get("type") == "Level6" else None
+            curr_hierarchy_info["Level 6name"] = hierarchy.get("name") if hierarchy.get("type") == "Level6" else None
+
+            curr_hierarchy_info["Subproductid"] = hierarchy.get("id") if hierarchy.get("type") == "Subproduct" else None
+            curr_hierarchy_info["Subproductname"] = hierarchy.get("name") if hierarchy.get("type") == "Subproduct" else None
+
+            curr_hierarchy_info["Business areaid"] = hierarchy.get("id") if hierarchy.get("type") == "BusinessArea" else None
+            curr_hierarchy_info["Business area name"] = hierarchy.get("name") if hierarchy.get("type") == "BusinessArea" else None
+
+            curr_hierarchy_info["Product areaid"] = hierarchy.get("id") if hierarchy.get("type") == "ProductArea" else None
+            curr_hierarchy_info["Product area name"] = hierarchy.get("name") if hierarchy.get("type") == "ProductArea" else None
+
             hierarchy_feed_outputs.append(curr_hierarchy_info)
 
+        # Create the feed file with the extracted information
         return self._create_feed_file(headers, hierarchy_feed_outputs, feed_name)
 
     def feed(self, hierarchy_data):
