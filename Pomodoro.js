@@ -1,59 +1,56 @@
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
+
+from re import sub
 from typing import List, Dict
 
-class HierarchyFeed:
+class HierarchyLevelFeed(Feed):
     def __init__(self):
-        config = Configurations()
-        self.sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
-    
-    def _hierarchy_content(self, hierarchy_data: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        # Prepare the final output
-        all_hierarchy_information = []
+        Feed.__init__(self)
 
+        config = Configurations()
+        self._sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
+
+    def _hierarchy_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
+        if "attributes" not in self._sds_hierarchy_attributes_config:
+            raise Exception("Did not find attributes to create hierarchy feed.")
+
+        if not isinstance(hierarchy_data, List):
+            raise Exception("The data should be of List type.")
+
+        headers = self._sds_hierarchy_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]*", "", headers).split(",")
+
+        all_hierarchy_information = []
         for hierarchy in hierarchy_data:
             curr_hierarchy_info = {}
-
-            # Explicit handling for each level (no for loop)
-            if "level_10_id" in hierarchy and "level_10_name" in hierarchy:
-                curr_hierarchy_info["Level 10 ID"] = hierarchy["level_10_id"]
-                curr_hierarchy_info["Level 10 Name"] = hierarchy["level_10_name"]
-            if "level_9_id" in hierarchy and "level_9_name" in hierarchy:
-                curr_hierarchy_info["Level 9 ID"] = hierarchy["level_9_id"]
-                curr_hierarchy_info["Level 9 Name"] = hierarchy["level_9_name"]
-            if "level_8_id" in hierarchy and "level_8_name" in hierarchy:
-                curr_hierarchy_info["Level 8 ID"] = hierarchy["level_8_id"]
-                curr_hierarchy_info["Level 8 Name"] = hierarchy["level_8_name"]
-            if "level_7_id" in hierarchy and "level_7_name" in hierarchy:
-                curr_hierarchy_info["Level 7 ID"] = hierarchy["level_7_id"]
-                curr_hierarchy_info["Level 7 Name"] = hierarchy["level_7_name"]
-            if "level_6_id" in hierarchy and "level_6_name" in hierarchy:
-                curr_hierarchy_info["Level 6 ID"] = hierarchy["level_6_id"]
-                curr_hierarchy_info["Level 6 Name"] = hierarchy["level_6_name"]
-
-            # Explicit handling for additional attributes
-            if "subproduct_id" in hierarchy and "subproduct_name" in hierarchy:
-                curr_hierarchy_info["Subproduct ID"] = hierarchy["subproduct_id"]
-                curr_hierarchy_info["Subproduct Name"] = hierarchy["subproduct_name"]
-            if "business_area_id" in hierarchy and "business_area_name" in hierarchy:
-                curr_hierarchy_info["Business Area ID"] = hierarchy["business_area_id"]
-                curr_hierarchy_info["Business Area Name"] = hierarchy["business_area_name"]
-            if "product_area_id" in hierarchy and "product_area_name" in hierarchy:
-                curr_hierarchy_info["Product Area ID"] = hierarchy["product_area_id"]
-                curr_hierarchy_info["Product Area Name"] = hierarchy["product_area_name"]
-            if "company_id" in hierarchy and "company_name" in hierarchy:
-                curr_hierarchy_info["Company ID"] = hierarchy["company_id"]
-                curr_hierarchy_info["Company Name"] = hierarchy["company_name"]
-            if "group_id" in hierarchy and "group_name" in hierarchy:
-                curr_hierarchy_info["Group ID"] = hierarchy["group_id"]
-                curr_hierarchy_info["Group Name"] = hierarchy["group_name"]
-
-            # Append to the final output
+            for header in headers:
+                if header == "all_parents":
+                    curr_hierarchy_info[header] = (
+                        "|".join(str(val) for val in hierarchy[header])
+                        if header in hierarchy and isinstance(hierarchy[header], List)
+                        else None
+                    )
+                else:
+                    curr_hierarchy_info[header] = (
+                        str(hierarchy[header]) if header in hierarchy else None
+                    )
             all_hierarchy_information.append(curr_hierarchy_info)
 
-        return all_hierarchy_information
+        flattened_data = {}
+        hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
 
-    def feed(self, hierarchy_data: List[Dict[str, str]]) -> str:
-        # Keep feed method unchanged
+        for level in hierarchy_levels:
+            level_data = [info for info in all_hierarchy_information if info.get("type") == level]
+            ids = [item.get("id") for item in level_data]
+            names = [item.get("name") for item in level_data]
+            flattened_data[f"{level}id"] = ids
+            flattened_data[f"{level}name"] = names
+
+        return self._create_feed_file(headers, all_hierarchy_information, feed_name), flattened_data
+
+    def feed(self, hierarchy_data):
         feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
-        feed_file_content = self._hierarchy_content(hierarchy_data)
-        self._save(feed_name, feed_file_content)
-        return feed_name
+        feed_file_content, flattened_data = self._hierarchy_content(hierarchy_data, feed_name)
+        self._save_feed(feed_name, feed_file_content)
+        return feed_name, flattened_data
