@@ -1,74 +1,51 @@
-#!/bin/bash
-# Specifies that the script should be run with the Bash shell.
+from utils.configuration.configuration import Configurations
+from utils.feed.feed import Feed
 
-# Step 1: Store the current branch name to switch back later
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-# Uses 'git rev-parse --abbrev-ref HEAD' to get the name of the current branch.
-# This command finds the current branch without returning the full commit hash.
-# Stores the branch name in the variable CURRENT_BRANCH for later use.
-echo "Current branch is: $CURRENT_BRANCH"
-# Prints the current branch name to confirm the branch we’re working in.
+from re import sub
+from typing import List, Dict
 
-# Step 2: Prompt for the feature branch name and release folder name
-read -p "Enter the feature branch name to compare (e.g., feature/FINRR-53522-gitlab-migration): " FEATURE_BRANCH
-# Prompts the user to enter the name of the feature branch to compare.
-# The input is stored in the variable FEATURE_BRANCH.
-read -p "Enter the name for the release folder (e.g., release_53522): " RELEASE_FOLDER
-# Prompts the user to enter a name for the release folder.
-# The input is stored in the variable RELEASE_FOLDER.
+class HierarchyLevelFeed(Feed):
+    def __init__(self):
+        Feed.__init__(self)
 
-# Step 3: Check if the feature branch exists in the remote repository
-if ! git ls-remote --heads origin "$FEATURE_BRANCH" &> /dev/null; then
-  # Uses 'git ls-remote --heads origin "$FEATURE_BRANCH"' to check if the specified branch exists on the remote.
-  # The '--heads' option restricts the output to branch heads.
-  # '&> /dev/null' redirects the command output to null, silencing it.
-  # If the branch doesn't exist, the negation '!' makes the condition true, and the script moves to the 'then' block.
-  
-  echo "Error: Branch '$FEATURE_BRANCH' does not exist in the remote repository."
-  # Prints an error message indicating that the specified branch does not exist in the remote repository.
-  
-  exit 1
-  # Exits the script with a status of 1, signaling an error.
-fi
+        config = Configurations()
+        self._sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
 
-# Step 4: Fetch the latest updates from the feature branch
-echo "Fetching the latest updates from the feature branch '$FEATURE_BRANCH'..."
-# Prints a message indicating that the script is fetching updates from the specified feature branch.
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH"
-# Fetches the latest updates from the remote feature branch into a local branch with the same name.
+    def _hierarchy_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
+        if "attributes" not in self._sds_hierarchy_attributes_config:
+            raise Exception("Did not find attributes to create hierarchy feed.")
 
-# Step 5: Compare the current branch and the feature branch to list changed files
-echo "Comparing the current branch with feature branch '$FEATURE_BRANCH'..."
-# Prints a message indicating that the script will now compare the current branch with the specified feature branch.
-CHANGED_FILES=$(git diff --name-only "$CURRENT_BRANCH" "$FEATURE_BRANCH")
-# Runs 'git diff --name-only' to list files that are different between the current branch and the specified feature branch.
-# Stores the output (list of changed files) in the CHANGED_FILES variable.
-echo "Files changed between $CURRENT_BRANCH and $FEATURE_BRANCH:"
-# Prints a message indicating the files that have changed between the two branches.
-echo "$CHANGED_FILES"
-# Prints the list of changed files.
+        if not isinstance(hierarchy_data, list):
+            raise Exception("The data should be of List type.")
 
-# Step 6: Create the release folder in the current branch
-echo "Creating release folder at: $RELEASE_FOLDER"
-# Prints a message indicating that the script is creating a release folder with the specified name.
-mkdir -p "$RELEASE_FOLDER"
-# Creates the release folder (if it doesn’t already exist) with the name specified by the user.
-# The '-p' option ensures that any missing parent directories are also created.
+        # Dynamically fetch headers from configuration
+        headers = self._sds_hierarchy_attributes_config["attributes"]
+        headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-# Step 7: Copy the changed files from the feature branch to the release folder in the current branch
-for file in $CHANGED_FILES; do
-  # Starts a for loop to iterate over each file in the CHANGED_FILES variable.
-  
-  mkdir -p "$RELEASE_FOLDER/$(dirname "$file")"
-  # Creates the necessary directory structure in the release folder to match the paths of the changed files.
-  # '$(dirname "$file")' extracts the directory path of the file.
-  
-  git show "$FEATURE_BRANCH:$file" > "$RELEASE_FOLDER/$file"
-  # Uses 'git show' to output the content of the specified file from the feature branch.
-  # Redirects this content into the corresponding path within the release folder in the current branch.
-  echo "Copied changed file: $RELEASE_FOLDER/$file"
-  # Prints a message indicating that the changed file has been copied to the release folder.
-done
+        # Initialize the flattened structure
+        flattened_row = {}
+        hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
 
-echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
-# Prints a success message indicating that the release folder has been created and populated with changed files.
+        for level in hierarchy_levels:
+            # Filter data for the current level using headers dynamically
+            level_data = next((item for item in hierarchy_data if item.get("type") == level), None)
+            if level_data:
+                for header in headers:
+                    if header in ["id", "name"]:
+                        flattened_row[f"{level}{header}"] = level_data.get(header)
+            else:
+                for header in headers:
+                    if header in ["id", "name"]:
+                        flattened_row[f"{level}{header}"] = None
+
+        # Use headers to create column keys for the output
+        output_headers = [f"{level}{header}" for level in hierarchy_levels for header in headers if header in ["id", "name"]]
+
+        # Return the flattened data as a feed file
+        return self._create_feed_file(output_headers, [flattened_row], feed_name)
+
+    def feed(self, hierarchy_data):
+        feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
+        feed_file_content = self._hierarchy_content(hierarchy_data, feed_name)
+        self._save_feed(feed_name, feed_file_content)
+        return feed_name
