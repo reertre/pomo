@@ -22,13 +22,26 @@ class HierarchyLevelFeed(Feed):
         headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
         # Group hierarchy data by type to avoid repeated filtering
-        grouped_data = {header: [] for header in headers}
-        for hierarchy in hierarchy_data:
-            type_key = hierarchy.get("type")
-            if type_key in grouped_data:
-                grouped_data[type_key].append(hierarchy)
+        grouped_data = {}
+        for item in hierarchy_data:
+            type_key = item.get("type")
+            if type_key not in grouped_data:
+                grouped_data[type_key] = []
+            grouped_data[type_key].append(item)
 
-        hierarchy_data.append(grouped_data)  # Append grouped data to hierarchy data
+        # Flatten the hierarchy data into the required format
+        flattened_data = {}
+        hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
+
+        for level in hierarchy_levels:
+            level_data = grouped_data.get(level, [])
+            ids = [item.get("id") for item in level_data]
+            names = [item.get("name") for item in level_data]
+            flattened_data[f"{level}id"] = ids
+            flattened_data[f"{level}name"] = names
+
+        # Append flattened data to hierarchy_data
+        hierarchy_data.append(flattened_data)
 
         return self._create_feed_file(headers, hierarchy_data, feed_name)
 
