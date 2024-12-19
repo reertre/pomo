@@ -21,33 +21,25 @@ class HierarchyLevelFeed(Feed):
         headers = self._sds_hierarchy_attributes_config["attributes"]
         headers = sub(r"[\n\t\s]*", "", headers).split(",")
 
-        all_hierarchy_information = []
-        for hierarchy in hierarchy_data:
-            curr_hierarchy_info = {}
-            for header in headers:
-                if header == "all_parents":
-                    curr_hierarchy_info[header] = (
-                        "|".join(str(val) for val in hierarchy[header])
-                        if header in hierarchy and isinstance(hierarchy[header], List)
-                        else None
-                    )
-                else:
-                    curr_hierarchy_info[header] = (
-                        str(hierarchy[header]) if header in hierarchy else None
-                    )
-            all_hierarchy_information.append(curr_hierarchy_info)
+        # Group hierarchy data by type to avoid repeated filtering
+        grouped_data = {}
+        for item in hierarchy_data:
+            item_type = item.get("type")
+            if item_type not in grouped_data:
+                grouped_data[item_type] = []
+            grouped_data[item_type].append(item)
 
         flattened_data = {}
         hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
 
         for level in hierarchy_levels:
-            level_data = [info for info in all_hierarchy_information if info.get("type") == level]
+            level_data = grouped_data.get(level, [])
             ids = [item.get("id") for item in level_data]
             names = [item.get("name") for item in level_data]
             flattened_data[f"{level}id"] = ids
             flattened_data[f"{level}name"] = names
 
-        return self._create_feed_file(headers, all_hierarchy_information, feed_name), flattened_data
+        return self._create_feed_file(headers, hierarchy_data, feed_name), flattened_data
 
     def feed(self, hierarchy_data):
         feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
