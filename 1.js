@@ -42,20 +42,33 @@ mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist" || { echo "Failed to create Tdb
 echo "Creating Tdb_hist folder: $NEW_RELEASE_FOLDER/database/Tdb_hist"
 
 # ---------------------------
-# DATABASE FILE HANDLING (Flattened structure for Tdb_hist)
+# DATABASE FILE HANDLING (Tdb_hist with Nested & Flat Directories)
 # ---------------------------
 
 DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
 
-# Define only the allowed subdirectories for Tdb_hist
+# Define subdirectories to copy from Tdb_hist
 TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
     SOURCE_DIR="database/Tdb_hist/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        # Copy only files, directly into Tdb_hist (flattened structure)
+        # Copy files from the root of the subfolder directly into Tdb_hist
         find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+
+        # Handle nested subdirectories inside Tables & Upgrade
+        if [[ "$subfolder" == "Tables" ]]; then
+            if [[ -d "$SOURCE_DIR/Upgrade" ]]; then
+                find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            fi
+        fi
+
+        if [[ "$subfolder" == "Upgrade" ]]; then
+            if [[ -d "$SOURCE_DIR/A" ]]; then
+                find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            fi
+        fi
     fi
 done
 
