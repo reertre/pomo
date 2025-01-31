@@ -29,11 +29,11 @@ fi
 # Validate and fetch the feature branch
 git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1 || { echo "Error fetching feature branch"; exit 1; }
 
-# Compare branches and find changed files
-CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$FEATURE_BRANCH")
+# Compare branches and find changed files (Only for Tdb_hist)
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$FEATURE_BRANCH" -- "database/Tdb_hist/*")
 
 if [[ -z "$CHANGED_FILES" ]]; then
-  echo "No changes detected between '$CURRENT_BRANCH' and '$FEATURE_BRANCH'."
+  echo "No changes detected in 'Tdb_hist'."
   exit 0
 fi
 
@@ -41,88 +41,31 @@ fi
 mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit 1; }
 echo "Creating release folder: $NEW_RELEASE_FOLDER"
 
-# Process changed files
-for file in $CHANGED_FILES; do
-    if git ls-tree -r "$FEATURE_BRANCH" --name-only | grep -q "^$file$"; then
-        mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$file")"
-        git show "$FEATURE_BRANCH:$file" > "$NEW_RELEASE_FOLDER/$file" || echo "Error processing $file"
-    else
-        echo "Skipping deleted file: $file"
-    fi
-done
-
-echo "Processed changed files into $NEW_RELEASE_FOLDER"
-
 # ---------------------------
-# UNIX FOLDER HANDLING (Only loader-bin & svcflrtb-bin)
+# DATABASE FOLDER HANDLING (Strictly for Tdb_hist)
 # ---------------------------
 
-BASE_DIR="$NEW_RELEASE_FOLDER/Unix"
+DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
 
-echo "Processing Unix folder..."
-
-# Ensure Unix directory exists
-mkdir -p "$BASE_DIR"
-
-# Define specific subdirectories to process
-UNIX_SUBFOLDERS=("loader-bin" "svcflrtb-bin")
-
-for subfolder in "${UNIX_SUBFOLDERS[@]}"; do
-    SOURCE_DIR="Unix/$subfolder"
-    TARGET_DIR="$BASE_DIR/$subfolder"
-
-    if [ -d "$SOURCE_DIR" ]; then
-        mkdir -p "$TARGET_DIR"
-        cp -r "$SOURCE_DIR/"* "$TARGET_DIR/" 2>/dev/null || echo "No files found in $SOURCE_DIR"
-    fi
-done
-
-echo "Unix folder restructuring completed. Only files from 'loader-bin' and 'svcflrtb-bin' were copied."
-
-# ---------------------------
-# AUTOSYS FOLDER HANDLING
-# ---------------------------
-
-AUTOSYS_DIR="$NEW_RELEASE_FOLDER/Autosys"
-
-echo "Processing Autosys folder..."
-mkdir -p "$AUTOSYS_DIR/upgrade"
-
-# Copy existing Autosys files if they exist
-if [ -d "Autosys" ]; then
-    cp -r Autosys/* "$AUTOSYS_DIR/" || echo "No Autosys files found."
-fi
-
-echo "Autosys folder setup completed."
-
-# ---------------------------
-# DATABASE FOLDER HANDLING (Selective Copying)
-# ---------------------------
-
-DATABASE_DIR="$NEW_RELEASE_FOLDER/database"
-
-echo "Processing Database folder..."
+echo "Processing Tdb_hist folder..."
 mkdir -p "$DATABASE_DIR"
 
-declare -A DB_SUBFOLDERS
-DB_SUBFOLDERS["Fdm"]="Functions Packages Procedures Static_data Tables Upgrade"
-DB_SUBFOLDERS["Mfr"]="Functions Packages Procedures Static_data Tables Views Upgrade"
-DB_SUBFOLDERS["Tdb_hist"]="Packages Procedures Static_data Tables Views Upgrade"
+# Define only the allowed subdirectories for Tdb_hist
+TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_data" "Tables" "Views" "Upgrade")
 
-for db_folder in "${!DB_SUBFOLDERS[@]}"; do
-    TARGET_DIR="$DATABASE_DIR/$db_folder"
-    mkdir -p "$TARGET_DIR"
+for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
+    SOURCE_DIR="database/Tdb_hist/$subfolder"
+    TARGET_DIR="$DATABASE_DIR/$subfolder"
 
-    for subfolder in ${DB_SUBFOLDERS[$db_folder]}; do
-        SOURCE_DIR="database/$db_folder/$subfolder"
-        if [ -d "$SOURCE_DIR" ]; then
-            mkdir -p "$TARGET_DIR/$subfolder"
-            cp -r "$SOURCE_DIR/"* "$TARGET_DIR/$subfolder/" 2>/dev/null || echo "No files found in $SOURCE_DIR"
-        fi
-    done
+    if [[ -d "$SOURCE_DIR" ]]; then
+        mkdir -p "$TARGET_DIR"
+        
+        # Copy only the files inside the allowed subfolders
+        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$TARGET_DIR/" \;
+    fi
 done
 
-echo "Database folder restructuring completed. Only relevant folders were copied."
+echo "Tdb_hist folder restructuring completed. Only required subdirectories were copied."
 
 # ---------------------------
 # Export release folder for GitLab CI pipeline
