@@ -42,38 +42,29 @@ mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit
 echo "Creating release folder: $NEW_RELEASE_FOLDER"
 
 # ---------------------------
-# 🚀 UNIX FOLDER HANDLING (Only loader-bin & svcflrtb-bin)
+# 🚀 UNIX FOLDER HANDLING (Flattened)
 # ---------------------------
 
 BASE_DIR="$NEW_RELEASE_FOLDER/Unix"
 echo "Processing Unix folder..."
 mkdir -p "$BASE_DIR"
 
-UNIX_SUBFOLDERS=("loader-bin" "svcflrtb-bin")
-
-for subfolder in "${UNIX_SUBFOLDERS[@]}"; do
-    SOURCE_DIR="Unix/$subfolder"
-    TARGET_DIR="$BASE_DIR/$subfolder"
-
-    if [[ -d "$SOURCE_DIR" ]]; then
-        mkdir -p "$TARGET_DIR"
-        cp -r "$SOURCE_DIR/"* "$TARGET_DIR/" 2>/dev/null || echo "No files found in $SOURCE_DIR"
-    fi
-done
+# Copy only files from loader-bin and svcflrtb-bin (no subdirectories)
+find Unix/loader-bin -maxdepth 1 -type f -exec cp {} "$BASE_DIR/" \;
+find Unix/svcflrtb-bin -maxdepth 1 -type f -exec cp {} "$BASE_DIR/" \;
 
 echo "Unix folder restructuring completed."
 
 # ---------------------------
-# 🚀 AUTOSYS FOLDER HANDLING
+# 🚀 AUTOSYS FOLDER HANDLING (Full Copy)
 # ---------------------------
 
 AUTOSYS_DIR="$NEW_RELEASE_FOLDER/Autosys"
 echo "Processing Autosys folder..."
-mkdir -p "$AUTOSYS_DIR/upgrade"
+mkdir -p "$AUTOSYS_DIR"
 
-if [ -d "Autosys" ]; then
-    cp -r Autosys/* "$AUTOSYS_DIR/" || echo "No Autosys files found."
-fi
+# Copy everything from Autosys
+cp -r Autosys/* "$AUTOSYS_DIR/" || echo "No Autosys files found."
 
 echo "Autosys folder setup completed."
 
@@ -85,6 +76,7 @@ DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
 echo "Processing Tdb_hist folder..."
 mkdir -p "$DATABASE_DIR"
 
+# Define only the allowed subdirectories for Tdb_hist
 TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_Data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
