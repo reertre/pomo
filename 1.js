@@ -38,39 +38,41 @@ if [[ -z "$CHANGED_FILES" ]]; then
 fi
 
 # Create the release folder
-TDB_HIST_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
-mkdir -p "$TDB_HIST_DIR" || { echo "Failed to create Tdb_hist folder"; exit 1; }
-echo "Creating Tdb_hist folder: $TDB_HIST_DIR"
+mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist" || { echo "Failed to create Tdb_hist folder"; exit 1; }
+echo "Creating Tdb_hist folder: $NEW_RELEASE_FOLDER/database/Tdb_hist"
 
 # ---------------------------
-# DATABASE FILE HANDLING (Flatten Tdb_hist Structure)
+# DATABASE FILE HANDLING (Tdb_hist with Nested & Flat Directories)
 # ---------------------------
 
-# Define only the allowed subdirectories for Tdb_hist
-TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_Data" "Tables" "Views" "Upgrade")
+DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
+
+# Define subdirectories to copy from Tdb_hist
+TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
     SOURCE_DIR="database/Tdb_hist/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        # Move all files from these subdirectories directly into Tdb_hist/
-        find "$SOURCE_DIR" -maxdepth 1 -type f -exec mv {} "$TDB_HIST_DIR/" \;
-        
-        # Special handling for nested folders inside "Tables/Upgrade" and "Upgrade/A"
-        if [[ "$subfolder" == "Tables" && -d "$SOURCE_DIR/Upgrade" ]]; then
-            find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec mv {} "$TDB_HIST_DIR/" \;
+        # Copy files from the root of the subfolder directly into Tdb_hist
+        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+
+        # Handle nested subdirectories inside Tables & Upgrade
+        if [[ "$subfolder" == "Tables" ]]; then
+            if [[ -d "$SOURCE_DIR/Upgrade" ]]; then
+                find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            fi
         fi
-        
-        if [[ "$subfolder" == "Upgrade" && -d "$SOURCE_DIR/A" ]]; then
-            find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec mv {} "$TDB_HIST_DIR/" \;
+
+        if [[ "$subfolder" == "Upgrade" ]]; then
+            if [[ -d "$SOURCE_DIR/A" ]]; then
+                find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            fi
         fi
-        
-        # Remove empty subdirectories to keep things clean
-        rm -rf "$SOURCE_DIR"
     fi
 done
 
-echo "Tdb_hist folder restructuring completed. All required files moved directly under Tdb_hist."
+echo "Tdb_hist folder restructuring completed. Files moved directly under Tdb_hist."
 
 # ---------------------------
 # Export release folder for GitLab CI pipeline
