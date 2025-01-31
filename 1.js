@@ -37,65 +37,67 @@ if [[ -z "$CHANGED_FILES" ]]; then
   exit 0
 fi
 
-# Create the release folder
+# Create the release folder inside branches/releases
 mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit 1; }
 echo "Creating release folder: $NEW_RELEASE_FOLDER"
 
 # ---------------------------
-# 🚀 UNIX FOLDER HANDLING (Flattened)
+# 🚀 MOVING CHANGED DIRECTORIES INTO RELEASE FOLDER
 # ---------------------------
 
-BASE_DIR="$NEW_RELEASE_FOLDER/Unix"
-echo "Processing Unix folder..."
-mkdir -p "$BASE_DIR"
+echo "Copying changed directories into release folder..."
 
-# Copy only files from loader-bin and svcflrtb-bin (no subdirectories)
-cp Unix/loader-bin/* "$BASE_DIR/" 2>/dev/null || echo "No files in Unix/loader-bin"
-cp Unix/svcflrtb-bin/* "$BASE_DIR/" 2>/dev/null || echo "No files in Unix/svcflrtb-bin"
+# Copy entire Unix directory if changes are detected
+if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Unix/") ]]; then
+    mkdir -p "$NEW_RELEASE_FOLDER/Unix"
+    cp -r branches/Unix/* "$NEW_RELEASE_FOLDER/Unix/" 2>/dev/null || echo "No Unix files found."
+fi
 
-echo "Unix folder restructuring completed."
+# Copy entire Autosys directory if changes are detected
+if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Autosys/") ]]; then
+    mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
+    cp -r branches/Autosys/* "$NEW_RELEASE_FOLDER/Autosys/" 2>/dev/null || echo "No Autosys files found."
+fi
 
-# ---------------------------
-# 🚀 AUTOSYS FOLDER HANDLING (Full Copy)
-# ---------------------------
-
-AUTOSYS_DIR="$NEW_RELEASE_FOLDER/Autosys"
-echo "Processing Autosys folder..."
-mkdir -p "$AUTOSYS_DIR"
-
-# Copy everything from Autosys
-cp -r Autosys/* "$AUTOSYS_DIR/" 2>/dev/null || echo "No Autosys files found."
-
-echo "Autosys folder setup completed."
+# Copy entire Database directory if changes are detected
+if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/database/") ]]; then
+    mkdir -p "$NEW_RELEASE_FOLDER/database"
+    cp -r branches/database/* "$NEW_RELEASE_FOLDER/database/" 2>/dev/null || echo "No database files found."
+fi
 
 # ---------------------------
-# 🚀 DATABASE FOLDER HANDLING (Tdb_hist Flattening)
+# 🚀 DATABASE FOLDER HANDLING (Flattening Tdb_hist in Release Folder)
 # ---------------------------
 
 DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
 echo "Processing Tdb_hist folder..."
 mkdir -p "$DATABASE_DIR"
 
-# Define only the allowed subdirectories for Tdb_hist
 TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_Data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
-    SOURCE_DIR="database/Tdb_hist/$subfolder"
+    SOURCE_DIR="branches/database/Tdb_hist/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        # Copy files from these subdirectories directly into Tdb_hist/
-        cp "$SOURCE_DIR"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in $SOURCE_DIR"
+        # Move only files from these subdirectories directly into Tdb_hist/
+        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
 
         # Special handling for nested folders
         if [[ "$subfolder" == "Tables" && -d "$SOURCE_DIR/Upgrade" ]]; then
-            cp "$SOURCE_DIR/Upgrade"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in Tables/Upgrade"
+            find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
         fi
 
         if [[ "$subfolder" == "Upgrade" && -d "$SOURCE_DIR/A" ]]; then
-            cp "$SOURCE_DIR/A"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in Upgrade/A"
+            find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
         fi
     fi
 done
+
+# Remove unwanted subdirectories from Tdb_hist
+rm -rf "$DATABASE_DIR/Synonyms"
+rm -rf "$DATABASE_DIR/Triggers"
+rm -rf "$DATABASE_DIR/Sequences"
+rm -rf "$DATABASE_DIR/Grants"
 
 echo "Tdb_hist restructuring completed. Files moved directly under Tdb_hist."
 
