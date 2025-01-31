@@ -50,8 +50,8 @@ echo "Processing Unix folder..."
 mkdir -p "$BASE_DIR"
 
 # Copy only files from loader-bin and svcflrtb-bin (no subdirectories)
-find Unix/loader-bin -maxdepth 1 -type f -exec cp {} "$BASE_DIR/" \;
-find Unix/svcflrtb-bin -maxdepth 1 -type f -exec cp {} "$BASE_DIR/" \;
+cp Unix/loader-bin/* "$BASE_DIR/" 2>/dev/null || echo "No files in Unix/loader-bin"
+cp Unix/svcflrtb-bin/* "$BASE_DIR/" 2>/dev/null || echo "No files in Unix/svcflrtb-bin"
 
 echo "Unix folder restructuring completed."
 
@@ -64,7 +64,7 @@ echo "Processing Autosys folder..."
 mkdir -p "$AUTOSYS_DIR"
 
 # Copy everything from Autosys
-cp -r Autosys/* "$AUTOSYS_DIR/" || echo "No Autosys files found."
+cp -r Autosys/* "$AUTOSYS_DIR/" 2>/dev/null || echo "No Autosys files found."
 
 echo "Autosys folder setup completed."
 
@@ -83,20 +83,17 @@ for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
     SOURCE_DIR="database/Tdb_hist/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        # Move files from these subdirectories directly into Tdb_hist/
-        find "$SOURCE_DIR" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
+        # Copy files from these subdirectories directly into Tdb_hist/
+        cp "$SOURCE_DIR"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in $SOURCE_DIR"
 
         # Special handling for nested folders
         if [[ "$subfolder" == "Tables" && -d "$SOURCE_DIR/Upgrade" ]]; then
-            find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
+            cp "$SOURCE_DIR/Upgrade"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in Tables/Upgrade"
         fi
 
         if [[ "$subfolder" == "Upgrade" && -d "$SOURCE_DIR/A" ]]; then
-            find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
+            cp "$SOURCE_DIR/A"/* "$DATABASE_DIR/" 2>/dev/null || echo "No files in Upgrade/A"
         fi
-
-        # Remove empty directories
-        rm -rf "$SOURCE_DIR"
     fi
 done
 
