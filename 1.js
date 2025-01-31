@@ -38,34 +38,28 @@ if [[ -z "$CHANGED_FILES" ]]; then
 fi
 
 # Create the release folder
-mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit 1; }
-echo "Creating release folder: $NEW_RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist" || { echo "Failed to create Tdb_hist folder"; exit 1; }
+echo "Creating Tdb_hist folder: $NEW_RELEASE_FOLDER/database/Tdb_hist"
 
 # ---------------------------
-# DATABASE FOLDER HANDLING (Strictly for Tdb_hist)
+# DATABASE FILE HANDLING (Flattened structure for Tdb_hist)
 # ---------------------------
 
 DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
-
-echo "Processing Tdb_hist folder..."
-mkdir -p "$DATABASE_DIR"
 
 # Define only the allowed subdirectories for Tdb_hist
 TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
     SOURCE_DIR="database/Tdb_hist/$subfolder"
-    TARGET_DIR="$DATABASE_DIR/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        mkdir -p "$TARGET_DIR"
-        
-        # Copy only the files inside the allowed subfolders
-        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$TARGET_DIR/" \;
+        # Copy only files, directly into Tdb_hist (flattened structure)
+        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
     fi
 done
 
-echo "Tdb_hist folder restructuring completed. Only required subdirectories were copied."
+echo "Tdb_hist folder restructuring completed. Files moved directly under Tdb_hist."
 
 # ---------------------------
 # Export release folder for GitLab CI pipeline
