@@ -96,6 +96,35 @@ fi
 echo "Autosys folder setup completed."
 
 # ---------------------------
+# DATABASE FOLDER HANDLING (Selective Copying)
+# ---------------------------
+
+DATABASE_DIR="$NEW_RELEASE_FOLDER/database"
+
+echo "Processing Database folder..."
+mkdir -p "$DATABASE_DIR"
+
+declare -A DB_SUBFOLDERS
+DB_SUBFOLDERS["Fdm"]="Functions Packages Procedures Static_data Tables Upgrade"
+DB_SUBFOLDERS["Mfr"]="Functions Packages Procedures Static_data Tables Views Upgrade"
+DB_SUBFOLDERS["Tdb_hist"]="Packages Procedures Static_data Tables Views Upgrade"
+
+for db_folder in "${!DB_SUBFOLDERS[@]}"; do
+    TARGET_DIR="$DATABASE_DIR/$db_folder"
+    mkdir -p "$TARGET_DIR"
+
+    for subfolder in ${DB_SUBFOLDERS[$db_folder]}; do
+        SOURCE_DIR="database/$db_folder/$subfolder"
+        if [ -d "$SOURCE_DIR" ]; then
+            mkdir -p "$TARGET_DIR/$subfolder"
+            cp -r "$SOURCE_DIR/"* "$TARGET_DIR/$subfolder/" 2>/dev/null || echo "No files found in $SOURCE_DIR"
+        fi
+    done
+done
+
+echo "Database folder restructuring completed. Only relevant folders were copied."
+
+# ---------------------------
 # Export release folder for GitLab CI pipeline
 # ---------------------------
 echo "NEW_RELEASE_FOLDER=$NEW_RELEASE_FOLDER" | tee new_release_folder.env
