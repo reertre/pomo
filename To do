@@ -66,23 +66,13 @@ mkdir -p "$RELEASE_FOLDER/autosys"
 find "$BASE_autosys_DIR" -type f -exec mv {} "$RELEASE_FOLDER/autosys/" \;
 find "$BASE_autosys_DIR" -type d -empty -delete
 
-# Restructure database/tdb_hist (Move all content under database/tdb_hist)
-BASE_TDB_DIR="$RELEASE_FOLDER/database/tdb_hist"
-mkdir -p "$RELEASE_FOLDER/database/tdb_hist"
-find "$BASE_TDB_DIR" -type f -exec mv {} "$RELEASE_FOLDER/database/tdb_hist/" \;
-find "$BASE_TDB_DIR" -type d -empty -delete
+# Move all database files to the root database folder (NO SUBDIRECTORIES)
+BASE_DATABASE_DIR="$RELEASE_FOLDER/database"
+mkdir -p "$BASE_DATABASE_DIR"
+find "$BASE_DATABASE_DIR" -type f -exec mv {} "$BASE_DATABASE_DIR/" \;
+find "$BASE_DATABASE_DIR" -mindepth 1 -type d -exec rm -rf {} +  # Remove ALL subdirectories
 
-echo "✅ All files have been moved to their respective folders."
-
-# Move additional files to database/
-for file in some_other_changed_file.sql another_changed_file.sql; do
-    if [[ -f "$RELEASE_FOLDER/branches/database/$file" ]]; then
-        mv "$RELEASE_FOLDER/branches/database/$file" "$RELEASE_FOLDER/database/$file"
-    fi
-done
-
-# Ensure database structure
-mkdir -p "$RELEASE_FOLDER/database"
+echo "✅ All database files moved directly under 'database/' with no subdirectories."
 
 # Ensure new_release_folder.env exists
 touch "$RELEASE_FOLDER/new_release_folder.env"
