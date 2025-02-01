@@ -1,113 +1,128 @@
 #!/bin/bash
 
-# Input Variables
+# 🛠️ Step 1: Set Variables
 CURRENT_BRANCH=$CI_COMMIT_BRANCH
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 NEW_RELEASE_FOLDER="branches/releases/release_${TIMESTAMP}"
 
-echo "Fetching all remote branches..."
-git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
+echo "📢 Fetching latest changes..."
+git fetch --all > /dev/null 2>&1 || { echo "❌ Error fetching branches"; exit 1; }
 
-# Detect the feature branch
-if [[ "$CURRENT_BRANCH" == feature/* ]]; then
-  FEATURE_BRANCH="$CURRENT_BRANCH"
+# 🛠️ Step 2: Identify Release Branch
+if [[ "$CURRENT_BRANCH" == release/* ]]; then
+  release_BRANCH="$CURRENT_BRANCH"
 else
-  FEATURE_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/feature/* --format='%(refname:lstrip=3)' | head -n 1)
+  release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
 fi
 
-if [[ -z "$FEATURE_BRANCH" ]]; then
-  echo "No feature branch detected. Exiting..."
+if [[ -z "$release_BRANCH" ]]; then
+  echo "❌ No release branch detected. Exiting..."
   exit 1
 fi
 
-# Ensure feature branch exists
-if ! git rev-parse --verify "origin/$FEATURE_BRANCH" >/dev/null 2>&1; then
-    echo "Feature branch $FEATURE_BRANCH does not exist in origin. Exiting..."
+# 🛠️ Step 3: Ensure Release Branch Exists
+if ! git rev-parse --verify "origin/$release_BRANCH" >/dev/null 2>&1; then
+    echo "❌ Release branch $release_BRANCH does not exist in origin. Exiting..."
     exit 1
 fi
 
-# Validate and fetch the feature branch
-git fetch origin "$FEATURE_BRANCH:$FEATURE_BRANCH" > /dev/null 2>&1 || { echo "Error fetching feature branch"; exit 1; }
+# 🛠️ Step 4: Get List of Changed Files
+git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "❌ Error checking out current branch"; exit 1; }
+git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "❌ Error checking out release branch"; exit 1; }
 
-# Compare branches and find changed files
-CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$FEATURE_BRANCH")
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
 
 if [[ -z "$CHANGED_FILES" ]]; then
-  echo "No changes detected between '$CURRENT_BRANCH' and '$FEATURE_BRANCH'."
+  echo "✅ No changes detected between '$CURRENT_BRANCH' and '$release_BRANCH'."
   exit 0
 fi
 
-# Create the release folder inside branches/releases
-mkdir -p "$NEW_RELEASE_FOLDER" || { echo "Failed to create release folder"; exit 1; }
-echo "Creating release folder: $NEW_RELEASE_FOLDER"
+# 🛠️ Step 5: Create the Release Folder
+mkdir -p "$NEW_RELEASE_FOLDER" || { echo "❌ Failed to create release folder"; exit 1; }
+echo "📂 Created release folder: $NEW_RELEASE_FOLDER"
 
 # ---------------------------
-# 🚀 MOVING CHANGED DIRECTORIES INTO RELEASE FOLDER
+# 🚀 Step 6: Copy Only Changed Files into Release Folder
 # ---------------------------
+echo "📢 Copying changed files into release folder..."
 
-echo "Copying changed directories into release folder..."
-
-# Copy Unix folder
-if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Unix/") ]]; then
-    mkdir -p "$NEW_RELEASE_FOLDER/Unix"
-
-    # Ensure we only copy files from loader-bin/ and svcflrtb-bin/
-    if [[ -d "branches/Unix/loader-bin" ]]; then
-        find "branches/Unix/loader-bin" -type f -exec cp {} "$NEW_RELEASE_FOLDER/Unix/" \;
+while IFS= read -r file; do
+    if [[ "$file" != branches/Unix/* && "$file" != branches/Autosys/* && "$file" != branches/database/* ]]; then
+        continue
     fi
 
-    if [[ -d "branches/Unix/svcflrtb-bin" ]]; then
-        find "branches/Unix/svcflrtb-bin" -type f -exec cp {} "$NEW_RELEASE_FOLDER/Unix/" \;
-    fi
-fi
+    TARGET_PATH="$NEW_RELEASE_FOLDER/${file#branches/}"
+    mkdir -p "$(dirname "$TARGET_PATH")"
+    cp "$file" "$TARGET_PATH"
+done <<< "$CHANGED_FILES"
 
-# Copy Autosys folder
-if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Autosys/") ]]; then
-    mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
-    cp -r branches/Autosys/* "$NEW_RELEASE_FOLDER/Autosys/" 2>/dev/null || echo "No Autosys files found."
-fi
-
-# Copy Database folder
-if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/database/") ]]; then
-    mkdir -p "$NEW_RELEASE_FOLDER/database"
-    cp -r branches/database/* "$NEW_RELEASE_FOLDER/database/" 2>/dev/null || echo "No database files found."
-fi
+echo "✅ Changed files copied successfully!"
 
 # ---------------------------
-# 🚀 DATABASE FOLDER HANDLING (Flattening Tdb_hist in Release Folder)
+# 🚀 Step 7: Flatten `Tdb_hist`
 # ---------------------------
-
 DATABASE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist"
-echo "Processing Tdb_hist folder..."
+echo "📢 Flattening Tdb_hist folder..."
 mkdir -p "$DATABASE_DIR"
 
 TDB_HIST_SUBFOLDERS=("Packages" "Procedures" "Static_Data" "Tables" "Views" "Upgrade")
 
 for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
-    SOURCE_DIR="branches/database/Tdb_hist/$subfolder"
+    SOURCE_DIR="$NEW_RELEASE_FOLDER/database/Tdb_hist/$subfolder"
 
     if [[ -d "$SOURCE_DIR" ]]; then
-        # Move only files from these subdirectories directly into Tdb_hist/
-        find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+        find "$SOURCE_DIR" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
 
-        # Handling Nested Folders
         if [[ "$subfolder" == "Tables" && -d "$SOURCE_DIR/Upgrade" ]]; then
-            find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
         fi
 
         if [[ "$subfolder" == "Upgrade" && -d "$SOURCE_DIR/A" ]]; then
-            find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
+            find "$SOURCE_DIR/A" -maxdepth 1 -type f -exec mv {} "$DATABASE_DIR/" \;
         fi
     fi
 done
 
-# Remove unwanted subdirectories from Tdb_hist
-rm -rf "$DATABASE_DIR/Synonyms" "$DATABASE_DIR/Triggers" "$DATABASE_DIR/Sequences" "$DATABASE_DIR/Grants"
+find "$DATABASE_DIR" -type d -empty -delete
 
-echo "Tdb_hist restructuring completed. Files moved directly under Tdb_hist."
+echo "✅ Tdb_hist restructuring completed."
 
 # ---------------------------
-# 🚀 Export release folder for GitLab CI pipeline
+# 🚀 Step 8: Handle Autosys Folder
+# ---------------------------
+AUTOSYS_DIR="$NEW_RELEASE_FOLDER/Autosys"
+echo "📢 Processing Autosys folder..."
+mkdir -p "$AUTOSYS_DIR"
+
+while IFS= read -r file; do
+    if [[ "$file" == branches/Autosys/* ]]; then
+        TARGET_PATH="$NEW_RELEASE_FOLDER/${file#branches/}"
+        mkdir -p "$(dirname "$TARGET_PATH")"
+        cp "$file" "$TARGET_PATH"
+    fi
+done <<< "$CHANGED_FILES"
+
+echo "✅ Autosys folder updated with changed files."
+
+# ---------------------------
+# 🚀 Step 9: Handle Unix Folder
+# ---------------------------
+UNIX_DIR="$NEW_RELEASE_FOLDER/Unix"
+echo "📢 Processing Unix folder..."
+mkdir -p "$UNIX_DIR"
+
+while IFS= read -r file; do
+    if [[ "$file" == branches/Unix/loader-bin/* || "$file" == branches/Unix/svcflrtb-bin/* ]]; then
+        TARGET_PATH="$NEW_RELEASE_FOLDER/${file#branches/}"
+        mkdir -p "$(dirname "$TARGET_PATH")"
+        cp "$file" "$TARGET_PATH"
+    fi
+done <<< "$CHANGED_FILES"
+
+echo "✅ Unix folder updated with changed files."
+
+# ---------------------------
+# 🚀 Step 10: Export Release Folder for GitLab CI/CD
 # ---------------------------
 echo "NEW_RELEASE_FOLDER=$NEW_RELEASE_FOLDER" | tee new_release_folder.env
-echo "Release folder created and saved: $NEW_RELEASE_FOLDER"
+echo "🎯 Release folder created and saved: $NEW_RELEASE_FOLDER"
