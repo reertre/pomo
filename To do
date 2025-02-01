@@ -1,8 +1,9 @@
 #!/bin/bash
 
 CURRENT_BRANCH=$CI_DEFAULT_BRANCH
+# Generate a timestamped release folder name
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-RELEASE_FOLDER="releases/release-$TIMESTAMP"
+RELEASE_FOLDER="branches/releases/release-$TIMESTAMP"
 
 echo "Fetching all remote branches..."
 git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
@@ -10,16 +11,13 @@ git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
 echo "Detecting the release branch..."
 if [[ "$CURRENT_BRANCH" == release/* ]]; then
     release_BRANCH="$CURRENT_BRANCH"
+    echo "Current branch is a release branch: $release_BRANCH"
 else
+    echo "Finding the latest updated release branch..."
     release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
 fi
 
 echo "Detected release branch: $release_BRANCH"
-
-if [[ -z "$release_BRANCH" ]]; then
-    echo "Error: No release branch found."
-    exit 1
-fi
 
 echo "Validating release branch '$release_BRANCH'..."
 if ! git ls-remote --heads origin "$release_BRANCH" > /dev/null 2>&1; then
@@ -37,37 +35,24 @@ git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "Error checking out re
 CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
 
 if [[ -z "$CHANGED_FILES" ]]; then
-    echo "No changes detected."
+    echo "No changes detected between '$CURRENT_BRANCH' and '$release_BRANCH'."
     exit 0
 fi
 
 latestdir=$(pwd)
-NEW_RELEASE_FOLDER="$latestdir/$RELEASE_FOLDER"
-mkdir -p "$NEW_RELEASE_FOLDER"
+echo "Current dir is $latestdir"
+mkdir -p "$RELEASE_FOLDER"
 
-echo "Copying Changed Files..."
+# Copy changed files to the new release folder
+echo "Copying changed files..."
 for file in $CHANGED_FILES; do
-    clean_path="${file#branches/}"
-    mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$clean_path")"
-    cp "$file" "$NEW_RELEASE_FOLDER/$clean_path"
+    clean_path="${file#branches/}"  # Remove 'branches/' prefix from file path
+    mkdir -p "$RELEASE_FOLDER/$(dirname "$clean_path")"
+    cp "$file" "$RELEASE_FOLDER/$clean_path"
+    echo "Copied: $file -> $RELEASE_FOLDER/$clean_path"
 done
 
-# Restructure Unix
-BASE_UNIX_DIR="$NEW_RELEASE_FOLDER/unix"
-mkdir -p "$NEW_RELEASE_FOLDER/Unix"
-find "$BASE_UNIX_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/Unix/" \;
-find "$BASE_UNIX_DIR" -type d -empty -delete
+echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
 
-# Restructure Autosys
-BASE_AUTOSYS_DIR="$NEW_RELEASE_FOLDER/autosys"
-mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
-find "$BASE_AUTOSYS_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/Autosys/" \;
-find "$BASE_AUTOSYS_DIR" -type d -empty -delete
-
-# Restructure Tdb_hist
-BASE_TDB_DIR="$NEW_RELEASE_FOLDER/database/tdb_hist"
-mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist"
-find "$BASE_TDB_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/database/Tdb_hist/" \;
-find "$BASE_TDB_DIR" -type d -empty -delete
-
-echo "✅ Restructuring completed successfully!"
+# Restructure unix
+BASE_unix_DIR
