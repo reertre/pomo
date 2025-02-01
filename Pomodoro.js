@@ -1,52 +1,40 @@
-from utils.configuration.configuration import Configurations
-from utils.feed.feed import Feed
+#!/bin/bash
 
-from re import sub
-from typing import List, Dict
+CURRENT_BRANCH=$CI_DEFAULT_BRANCH
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+RELEASE_FOLDER="releases/release-$TIMESTAMP"
 
-class HierarchyLevelFeed(Feed):
-    def __init__(self):
-        Feed.__init__(self)
+echo "Fetching all remote branches..."
+git fetch --all --prune > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
 
-        config = Configurations()
-        self._sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
+echo "Resetting to latest '$CURRENT_BRANCH'..."
+git reset --hard origin/"$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error resetting branch"; exit 1; }
 
-    def _hierarchy_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_hierarchy_attributes_config:
-            raise Exception("Did not find attributes to create hierarchy feed.")
+echo "Comparing '$CURRENT_BRANCH' with '$release_BRANCH'..."
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
 
-        if not isinstance(hierarchy_data, list):
-            raise Exception("The data should be of List type.")
+if [[ -z "$CHANGED_FILES" ]]; then
+    echo "No changes detected."
+    exit 0
+fi
 
-        headers = self._sds_hierarchy_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]*", "", headers).split(",")
+echo "List of Changed Files:"
+echo "$CHANGED_FILES"
 
-        # Group hierarchy data by type to avoid repeated filtering
-        grouped_data = {}
-        for item in hierarchy_data:
-            type_key = item.get("type")
-            if type_key not in grouped_data:
-                grouped_data[type_key] = []
-            grouped_data[type_key].append(item)
+echo "Checking actual files in working directory..."
+ls -R
 
-        # Flatten the hierarchy data into the required format
-        flattened_data = {}
-        hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
+NEW_RELEASE_FOLDER="$(pwd)/$RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER"
 
-        for level in hierarchy_levels:
-            level_data = grouped_data.get(level, [])
-            ids = [item.get("id") for item in level_data]
-            names = [item.get("name") for item in level_data]
-            flattened_data[f"{level}id"] = ids
-            flattened_data[f"{level}name"] = names
+echo "Copying files..."
+for file in $CHANGED_FILES; do
+    if [[ -f "$file" ]]; then
+        cp "$file" "$NEW_RELEASE_FOLDER/$file"
+        echo "✅ Copied: $file -> $NEW_RELEASE_FOLDER/$file"
+    else
+        echo "⚠️ Warning: File '$file' not found in working directory!"
+    fi
+done
 
-        # Append flattened data to hierarchy_data
-        hierarchy_data.append(flattened_data)
-
-        return self._create_feed_file(headers, hierarchy_data, feed_name)
-
-    def feed(self, hierarchy_data):
-        feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
-        feed_file_content = self._hierarchy_content(hierarchy_data, feed_name)
-        self._save_feed(feed_name, feed_file_content)
-        return feed_name
+echo "✅ Release folder created at $NEW_RELEASE_FOLDER"
