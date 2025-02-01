@@ -55,4 +55,43 @@ done
 echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
 
 # Restructure unix
-BASE_unix_DIR
+BASE_unix_DIR="$RELEASE_FOLDER/unix"
+mkdir -p "$RELEASE_FOLDER/unix"
+find "$BASE_unix_DIR" -type f -exec mv {} "$RELEASE_FOLDER/unix/" \;
+find "$BASE_unix_DIR" -type d -empty -delete
+
+# Restructure autosys
+BASE_autosys_DIR="$RELEASE_FOLDER/autosys"
+mkdir -p "$RELEASE_FOLDER/autosys"
+find "$BASE_autosys_DIR" -type f -exec mv {} "$RELEASE_FOLDER/autosys/" \;
+find "$BASE_autosys_DIR" -type d -empty -delete
+
+# Restructure database/tdb_hist (Move all content under database/tdb_hist)
+BASE_TDB_DIR="$RELEASE_FOLDER/database/tdb_hist"
+mkdir -p "$RELEASE_FOLDER/database/tdb_hist"
+find "$BASE_TDB_DIR" -type f -exec mv {} "$RELEASE_FOLDER/database/tdb_hist/" \;
+find "$BASE_TDB_DIR" -type d -empty -delete
+
+echo "✅ All files have been moved to their respective folders."
+
+# Move additional files to database/
+for file in some_other_changed_file.sql another_changed_file.sql; do
+    if [[ -f "$RELEASE_FOLDER/branches/database/$file" ]]; then
+        mv "$RELEASE_FOLDER/branches/database/$file" "$RELEASE_FOLDER/database/$file"
+    fi
+done
+
+# Ensure database structure
+mkdir -p "$RELEASE_FOLDER/database"
+
+# Ensure new_release_folder.env exists
+touch "$RELEASE_FOLDER/new_release_folder.env"
+
+# Clean up 'branches' if it still exists inside the release folder
+if [[ -d "$RELEASE_FOLDER/branches" ]]; then
+    echo "Removing unnecessary 'branches/' folder..."
+    rm -rf "$RELEASE_FOLDER/branches"
+    echo "✅ 'branches/' folder removed successfully."
+fi
+
+echo "🎉 Process completed successfully!"
