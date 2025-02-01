@@ -1,45 +1,73 @@
-from utils.configuration.configuration import Configurations
-from utils.feed.feed import Feed
+#!/bin/bash
 
-from re import sub
-from typing import List, Dict
+CURRENT_BRANCH=$CI_DEFAULT_BRANCH
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+RELEASE_FOLDER="releases/release-$TIMESTAMP"
 
-class HierarchyLevelFeed(Feed):
-    def __init__(self):
-        Feed.__init__(self)
+echo "Fetching all remote branches..."
+git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
 
-        config = Configurations()
-        self._sds_hierarchy_attributes_config = config.get_sds_hierarchy_attributes()
+echo "Detecting the release branch..."
+if [[ "$CURRENT_BRANCH" == release/* ]]; then
+    release_BRANCH="$CURRENT_BRANCH"
+else
+    release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
+fi
 
-    def _hierarchy_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_hierarchy_attributes_config:
-            raise Exception("Did not find attributes to create hierarchy feed.")
+echo "Detected release branch: $release_BRANCH"
 
-        if not isinstance(hierarchy_data, list):
-            raise Exception("The data should be of List type.")
+if [[ -z "$release_BRANCH" ]]; then
+    echo "Error: No release branch found."
+    exit 1
+fi
 
-        headers = self._sds_hierarchy_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]*", "", headers).split(",")
+echo "Validating release branch '$release_BRANCH'..."
+if ! git ls-remote --heads origin "$release_BRANCH" > /dev/null 2>&1; then
+    echo "Error: Branch '$release_BRANCH' does not exist in the remote repository."
+    exit 1
+fi
 
-        # Create a dictionary to store flattened data
-        flattened_row = {}
-        hierarchy_levels = ["Level10", "Level9", "Level8", "Level7", "Level6", "SubProduct", "BusinessArea", "ProductArea", "Company", "Group"]
+echo "Fetching the latest updates from '$release_BRANCH'..."
+git fetch origin "$release_BRANCH:$release_BRANCH" > /dev/null 2>&1 || { echo "Error fetching release branch"; exit 1; }
 
-        for level in hierarchy_levels:
-            # Filter data for the current level
-            level_data = next((item for item in hierarchy_data if item.get("type") == level), None)
-            if level_data:
-                flattened_row[f"{level}id"] = level_data.get("id")
-                flattened_row[f"{level}name"] = level_data.get("name")
-            else:
-                flattened_row[f"{level}id"] = None
-                flattened_row[f"{level}name"] = None
+echo "Comparing '$CURRENT_BRANCH' with '$release_BRANCH'..."
+git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error checking out current branch"; exit 1; }
+git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "Error checking out release branch"; exit 1; }
 
-        # Return flattened data
-        return self._create_feed_file(headers, [flattened_row], feed_name)
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
 
-    def feed(self, hierarchy_data):
-        feed_name = self._feed_name(sds_entity="hierarchy", is_json=False)
-        feed_file_content = self._hierarchy_content(hierarchy_data, feed_name)
-        self._save_feed(feed_name, feed_file_content)
-        return feed_name
+if [[ -z "$CHANGED_FILES" ]]; then
+    echo "No changes detected."
+    exit 0
+fi
+
+latestdir=$(pwd)
+NEW_RELEASE_FOLDER="$latestdir/$RELEASE_FOLDER"
+mkdir -p "$NEW_RELEASE_FOLDER"
+
+echo "Copying Changed Files..."
+for file in $CHANGED_FILES; do
+    clean_path="${file#branches/}"
+    mkdir -p "$NEW_RELEASE_FOLDER/$(dirname "$clean_path")"
+    cp "$file" "$NEW_RELEASE_FOLDER/$clean_path"
+done
+
+# Restructure Unix
+BASE_UNIX_DIR="$NEW_RELEASE_FOLDER/unix"
+mkdir -p "$NEW_RELEASE_FOLDER/Unix"
+find "$BASE_UNIX_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/Unix/" \;
+find "$BASE_UNIX_DIR" -type d -empty -delete
+
+# Restructure Autosys
+BASE_AUTOSYS_DIR="$NEW_RELEASE_FOLDER/autosys"
+mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
+find "$BASE_AUTOSYS_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/Autosys/" \;
+find "$BASE_AUTOSYS_DIR" -type d -empty -delete
+
+# Restructure Tdb_hist
+BASE_TDB_DIR="$NEW_RELEASE_FOLDER/database/tdb_hist"
+mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist"
+find "$BASE_TDB_DIR" -type f -exec mv {} "$NEW_RELEASE_FOLDER/database/Tdb_hist/" \;
+find "$BASE_TDB_DIR" -type d -empty -delete
+
+echo "✅ Restructuring completed successfully!"
