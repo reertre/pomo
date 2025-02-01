@@ -47,19 +47,27 @@ echo "Creating release folder: $NEW_RELEASE_FOLDER"
 
 echo "Copying changed directories into release folder..."
 
-# Copy entire Unix directory if changes are detected
+# Copy Unix folder
 if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Unix/") ]]; then
     mkdir -p "$NEW_RELEASE_FOLDER/Unix"
-    cp -r branches/Unix/* "$NEW_RELEASE_FOLDER/Unix/" 2>/dev/null || echo "No Unix files found."
+
+    # Ensure we only copy files from loader-bin/ and svcflrtb-bin/
+    if [[ -d "branches/Unix/loader-bin" ]]; then
+        find "branches/Unix/loader-bin" -type f -exec cp {} "$NEW_RELEASE_FOLDER/Unix/" \;
+    fi
+
+    if [[ -d "branches/Unix/svcflrtb-bin" ]]; then
+        find "branches/Unix/svcflrtb-bin" -type f -exec cp {} "$NEW_RELEASE_FOLDER/Unix/" \;
+    fi
 fi
 
-# Copy entire Autosys directory if changes are detected
+# Copy Autosys folder
 if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/Autosys/") ]]; then
     mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
     cp -r branches/Autosys/* "$NEW_RELEASE_FOLDER/Autosys/" 2>/dev/null || echo "No Autosys files found."
 fi
 
-# Copy entire Database directory if changes are detected
+# Copy Database folder
 if [[ $(echo "$CHANGED_FILES" | grep -E "^branches/database/") ]]; then
     mkdir -p "$NEW_RELEASE_FOLDER/database"
     cp -r branches/database/* "$NEW_RELEASE_FOLDER/database/" 2>/dev/null || echo "No database files found."
@@ -82,7 +90,7 @@ for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
         # Move only files from these subdirectories directly into Tdb_hist/
         find "$SOURCE_DIR" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
 
-        # Special handling for nested folders
+        # Handling Nested Folders
         if [[ "$subfolder" == "Tables" && -d "$SOURCE_DIR/Upgrade" ]]; then
             find "$SOURCE_DIR/Upgrade" -maxdepth 1 -type f -exec cp {} "$DATABASE_DIR/" \;
         fi
@@ -94,10 +102,7 @@ for subfolder in "${TDB_HIST_SUBFOLDERS[@]}"; do
 done
 
 # Remove unwanted subdirectories from Tdb_hist
-rm -rf "$DATABASE_DIR/Synonyms"
-rm -rf "$DATABASE_DIR/Triggers"
-rm -rf "$DATABASE_DIR/Sequences"
-rm -rf "$DATABASE_DIR/Grants"
+rm -rf "$DATABASE_DIR/Synonyms" "$DATABASE_DIR/Triggers" "$DATABASE_DIR/Sequences" "$DATABASE_DIR/Grants"
 
 echo "Tdb_hist restructuring completed. Files moved directly under Tdb_hist."
 
