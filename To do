@@ -66,13 +66,13 @@ mkdir -p "$RELEASE_FOLDER/autosys"
 find "$BASE_autosys_DIR" -type f -exec mv {} "$RELEASE_FOLDER/autosys/" \;
 find "$BASE_autosys_DIR" -type d -empty -delete
 
-# Move all database files to the root database folder (NO SUBDIRECTORIES)
-BASE_DATABASE_DIR="$RELEASE_FOLDER/database"
-mkdir -p "$BASE_DATABASE_DIR"
-find "$BASE_DATABASE_DIR" -type f -exec mv {} "$BASE_DATABASE_DIR/" \;
-find "$BASE_DATABASE_DIR" -mindepth 1 -type d -exec rm -rf {} +  # Remove ALL subdirectories
+# Move all files from subdirectories inside tdb_hist/ to tdb_hist/
+BASE_TDB_DIR="$RELEASE_FOLDER/database/tdb_hist"
+mkdir -p "$BASE_TDB_DIR"
+find "$BASE_TDB_DIR" -mindepth 2 -type f -exec mv {} "$BASE_TDB_DIR/" \;  # Move all files up to tdb_hist/
+find "$BASE_TDB_DIR" -mindepth 1 -type d -exec rm -rf {} +  # Remove ALL subdirectories
 
-echo "✅ All database files moved directly under 'database/' with no subdirectories."
+echo "✅ All tdb_hist/ files moved directly under 'tdb_hist/' with no subdirectories."
 
 # Ensure new_release_folder.env exists
 touch "$RELEASE_FOLDER/new_release_folder.env"
