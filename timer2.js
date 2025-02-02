@@ -1,66 +1,96 @@
-from utils.configuration.configuration import Configurations
-from utils.feed.feed import Feed
+#!/bin/bash
 
-from re import sub
-from typing import List, Dict
-from collections import defaultdict
+CURRENT_BRANCH=$CI_DEFAULT_BRANCH
+# Generate a timestamped release folder name
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+RELEASE_FOLDER="branches/releases/release-$TIMESTAMP"
 
-class HierarchyLevelFeed(Feed):
-    def __init__(self):
-        super().__init__()
-        config = Configurations()
-        self._sds_hierarchy_feed_attributes_config = config.get_sds_hierarchylevel_attributes()
+echo "Fetching all remote branches..."
+git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
 
-    def _hierarchy_feed_content(self, hierarchy_data: List[Dict[str, any]], feed_name: str):
-        if "attributes" not in self._sds_hierarchy_feed_attributes_config:
-            raise Exception("Did not find attributes to create Hierarchy feed.")
+echo "Detecting the release branch..."
+if [[ "$CURRENT_BRANCH" == release/* ]]; then
+    release_BRANCH="$CURRENT_BRANCH"
+    echo "Current branch is a release branch: $release_BRANCH"
+else
+    echo "Finding the latest updated release branch..."
+    release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
+fi
 
-        headers = self._sds_hierarchy_feed_attributes_config["attributes"]
-        headers = sub(r"[\n\t\s]+", "", headers).split(",")
+echo "Detected release branch: $release_BRANCH"
 
-        # Define hierarchy levels and their renamed headers
-        hierarchy_levels = {
-            "Level 10": "Hierarchy10",
-            "Level 9": "Hierarchy9",
-            "Level 8": "Hierarchy8",
-            "Level 7": "Hierarchy7",
-            "Level 6": "Hierarchy6",
-            "Subproduct": "Subproduct",
-            "Business Area": "BusinessArea",
-            "Product Area": "ProductArea",
-            "Company": "Company",
-            "Group": "Group",
-        }
+echo "Validating release branch '$release_BRANCH'..."
+if ! git ls-remote --heads origin "$release_BRANCH" > /dev/null 2>&1; then
+    echo "Error: Branch '$release_BRANCH' does not exist in the remote repository."
+    exit 1
+fi
 
-        # Generate column headers dynamically
-        column_headers = []
-        for level, renamed_level in hierarchy_levels.items():
-            column_headers.append(f"{renamed_level} ID")
-            column_headers.append(f"{renamed_level} Name")
+echo "Fetching the latest updates from '$release_BRANCH'..."
+git fetch origin "$release_BRANCH:$release_BRANCH" > /dev/null 2>&1 || { echo "Error fetching release branch"; exit 1; }
 
-        # Preprocess hierarchy data into a hash map (dictionary) for efficient lookups
-        hierarchy_dict = defaultdict(list)
-        for item in hierarchy_data:
-            hierarchy_dict[item["type"]].append(item)
+echo "Comparing '$CURRENT_BRANCH' with '$release_BRANCH'..."
+git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error checking out current branch"; exit 1; }
+git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "Error checking out release branch"; exit 1; }
 
-        # Prepare output rows
-        hierarchy_feed_outputs = []
-        max_length = max(len(hierarchy_dict[level]) for level in hierarchy_levels if level in hierarchy_dict)
+# Get the list of changed files, but ignore 'Grants/', 'Sequences/', and 'Triggers/'
+CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH" | grep -vE 'database/tdb_hist/(Grants|Sequences|Triggers)/')
 
-        for i in range(max_length):
-            curr_hierarchy_info = {header: None for header in column_headers}
-            for level, renamed_level in hierarchy_levels.items():
-                if level in hierarchy_dict and i < len(hierarchy_dict[level]):
-                    hierarchy = hierarchy_dict[level][i]
-                    curr_hierarchy_info[f"{renamed_level} ID"] = str(hierarchy.get("id", None))
-                    curr_hierarchy_info[f"{renamed_level} Name"] = str(hierarchy.get("name", None))
-            hierarchy_feed_outputs.append(curr_hierarchy_info)
+if [[ -z "$CHANGED_FILES" ]]; then
+    echo "No relevant changes detected (ignoring Grants, Sequences, and Triggers in tdb_hist)."
+    exit 0
+fi
 
-        # Return feed with headers and hierarchy information
-        return self._create_feed_file(column_headers, hierarchy_feed_outputs, feed_name)
+latestdir=$(pwd)
+echo "Current dir is $latestdir"
+mkdir -p "$RELEASE_FOLDER"
 
-    def feed(self, hierarchy_data):
-        feed_name = self._feed_name(sds_entity="hierarchylevel_feed", is_json=False)
-        feed_file_content = self._hierarchy_feed_content(hierarchy_data, feed_name)
-        self._save(feed_name, content=feed_file_content)
-        return feed_name
+# Copy changed files to the new release folder
+echo "Copying changed files..."
+for file in $CHANGED_FILES; do
+    clean_path="${file#branches/}"  # Remove 'branches/' prefix from file path
+    mkdir -p "$RELEASE_FOLDER/$(dirname "$clean_path")"
+    cp "$file" "$RELEASE_FOLDER/$clean_path"
+    echo "Copied: $file -> $RELEASE_FOLDER/$clean_path"
+done
+
+echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
+
+# Restructure unix
+BASE_unix_DIR="$RELEASE_FOLDER/unix"
+mkdir -p "$RELEASE_FOLDER/unix"
+find "$BASE_unix_DIR" -type f -exec mv {} "$RELEASE_FOLDER/unix/" \;
+find "$BASE_unix_DIR" -type d -empty -delete
+
+# Restructure autosys
+BASE_autosys_DIR="$RELEASE_FOLDER/autosys"
+mkdir -p "$RELEASE_FOLDER/autosys"
+find "$BASE_autosys_DIR" -type f -exec mv {} "$RELEASE_FOLDER/autosys/" \;
+find "$BASE_autosys_DIR" -type d -empty -delete
+
+# Move only allowed subdirectories from tdb_hist/
+BASE_TDB_DIR="$RELEASE_FOLDER/database/tdb_hist"
+mkdir -p "$BASE_TDB_DIR"
+
+# Find all files inside tdb_hist/ but EXCLUDE Grants, Sequences, Triggers
+find "$BASE_TDB_DIR" -type f | grep -vE 'tdb_hist/(Grants|Sequences|Triggers)/' | while read file; do
+    mv "$file" "$BASE_TDB_DIR/"
+done
+
+# Remove only the unwanted directories
+rm -rf "$BASE_TDB_DIR/Grants"
+rm -rf "$BASE_TDB_DIR/Sequences"
+rm -rf "$BASE_TDB_DIR/Triggers"
+
+echo "✅ All tdb_hist/ files moved directly under 'tdb_hist/' (excluding Grants, Sequences, and Triggers)."
+
+# Ensure new_release_folder.env exists
+touch "$RELEASE_FOLDER/new_release_folder.env"
+
+# Clean up 'branches' if it still exists inside the release folder
+if [[ -d "$RELEASE_FOLDER/branches" ]]; then
+    echo "Removing unnecessary 'branches/' folder..."
+    rm -rf "$RELEASE_FOLDER/branches"
+    echo "✅ 'branches/' folder removed successfully."
+fi
+
+echo "🎉 Process completed successfully!"
