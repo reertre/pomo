@@ -1,109 +1,57 @@
-import React from 'react';
-import { withStyles } from '@material-ui/core/styles';
-import Slider from '@material-ui/core/Slider';
+#!/bin/bash
 
-const CustomSlider = withStyles({
-  root: {
-    color: '#2D27DC', // Change to the desired color
-    height: 6,
-  },
-  thumb: {
-    height: 24,
-    width: 24,
-    backgroundColor: '#2D27DC', // Change to the desired color
-    border: '2px solid currentColor',
-    marginTop: -9,
-    marginLeft: -12,
-    '&:focus, &:hover, &$active': {
-      boxShadow: 'inherit',
-    },
-  },
-  active: {},
-  track: {
-    height: 6,
-  },
-  rail: {
-    height: 6,
-  },
-})(Slider);
+export PATH=/flex_data/mfr_ftt/loader/bin:$PATH
+source .devprofile
 
-const marks = [
-  {
-    value: 5,
-    label: '5 mins',
-  },
-  {
-    value: 60,
-    label: '60 mins',
-  },
-];
+# Determine the prefix based on the current script's name.
+# For example, if the script is "54.9_tdb_hist_1.sh", then:
+#   prefix = "54.9_tdb_hist_1"
+prefix=$(basename "$0" .sh)
 
-const Settings = ({ timerMode, setTimerMode, setTimeRemaining }) => {
-  const handleDurationChange = (event, value) => {
-    if (timerMode === 'pomo') {
-      setTimeRemaining(value * 60);
-    } else if (timerMode === 'short') {
-      setTimeRemaining(value);
-    } else if (timerMode === 'long') {
-      setTimeRemaining(value * 60);
-    }
-  };
+# Define the standard start and end SQL scripts.
+std_start="${prefix}a.sql"  # e.g. 54.9_tdb_hist_1a.sql
+std_end="${prefix}c.sql"    # e.g. 54.9_tdb_hist_1c.sql
 
-  return (
-    <div>
-      <div>
-        <p>Work Duration</p>
-        <CustomSlider
-          valueLabelDisplay="auto"
-          min={5}
-          max={60}
-          step={5}
-          marks={marks}
-          value={timerMode === 'pomo' ? (timeRemaining / 60) : 0}
-          onChange={handleDurationChange}
-        />
-      </div>
+# Ensure the standard scripts exist.
+if [ ! -f "$std_start" ]; then
+    echo "Standard start script '$std_start' not found!" >&2
+    exit 1
+fi
+if [ ! -f "$std_end" ]; then
+    echo "Standard end script '$std_end' not found!" >&2
+    exit 1
+fi
 
-      <div>
-        <p>Short Break Duration</p>
-        <CustomSlider
-          valueLabelDisplay="auto"
-          min={1}
-          max={30}
-          step={1}
-          marks={marks}
-          value={timerMode === 'short' ? timeRemaining : 0}
-          onChange={handleDurationChange}
-        />
-      </div>
+# Determine non‑standard scripts.
+# For example, any FINRR files that include "tdb_hist" in their name.
+non_standard=(FINRR_*tdb_hist*.syn FINRR_*tdb_hist*.sql)
+# Remove non-matches if the glob did not find any.
+# (Depending on your shell settings, unmatched globs may remain literal.)
+if [ "${non_standard[0]}" == "FINRR_*tdb_hist*.syn" ]; then
+    non_standard=()
+fi
+if [ "${non_standard[0]}" == "FINRR_*tdb_hist*.sql" ]; then
+    non_standard=()
+fi
 
-      <div>
-        <p>Long Break Duration</p>
-        <CustomSlider
-          valueLabelDisplay="auto"
-          min={1}
-          max={45}
-          step={1}
-          marks={marks}
-          value={timerMode === 'long' ? (timeRemaining / 60) : 0}
-          onChange={handleDurationChange}
-        />
-      </div>
+echo "Execution order:"
+echo "$std_start"
+for f in "${non_standard[@]}"; do
+    echo "$f"
+done
+echo "$std_end"
 
-      <div>
-        <p>Rounds</p>
-        <CustomSlider
-          valueLabelDisplay="auto"
-          min={2}
-          max={15}
-          step={1}
-          marks={marks}
-          value={0}
-          onChange={handleDurationChange}
-        />
-      </div>
-    </div>
-  );
-};
+sqlplus -s $login_fdm <<EOF
+set echo on time on timing on trimspool on scan off pagesize 0 linesize 1000
+spool ${prefix}.log
 
-export default Settings;
+prompt Executing ${prefix}.sql;
+prompt ---------------------------------------;
+
+@${std_start}
+$(for f in "${non_standard[@]}"; do echo "@$f"; done)
+@${std_end}
+
+spool off
+exit
+EOF
