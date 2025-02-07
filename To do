@@ -1,87 +1,43 @@
 #!/bin/bash
+set -e
 
-CURRENT_BRANCH=$CI_DEFAULT_BRANCH
-# Generate a timestamped release folder name
-TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-RELEASE_FOLDER="branches/releases/release-$TIMESTAMP"
-
-echo "Fetching all remote branches..."
-git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
-
-echo "Detecting the release branch..."
-if [[ "$CURRENT_BRANCH" == release/* ]]; then
-    release_BRANCH="$CURRENT_BRANCH"
-    echo "Current branch is a release branch: $release_BRANCH"
-else
-    echo "Finding the latest updated release branch..."
-    release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
+# Load configuration variables from config.cfg.
+CONFIG_FILE="config.cfg"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "Error: $CONFIG_FILE not found!"
+  exit 1
 fi
+source "$CONFIG_FILE"
 
-echo "Detected release branch: $release_BRANCH"
-
-echo "Validating release branch '$release_BRANCH'..."
-if ! git ls-remote --heads origin "$release_BRANCH" > /dev/null 2>&1; then
-    echo "Error: Branch '$release_BRANCH' does not exist in the remote repository."
+# Ensure the required variables are set.
+if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
+    echo "Error: Both CHG and RELEASE_VERSION must be defined in config.cfg."
     exit 1
 fi
 
-echo "Fetching the latest updates from '$release_BRANCH'..."
-git fetch origin "$release_BRANCH:$release_BRANCH" > /dev/null 2>&1 || { echo "Error fetching release branch"; exit 1; }
+# Define the original (old) values that are in the existing folder structure.
+OLD_CHG="CHG99999999999"
+OLD_REL="99.9"
 
-echo "Comparing '$CURRENT_BRANCH' with '$release_BRANCH'..."
-git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error checking out current branch"; exit 1; }
-git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "Error checking out release branch"; exit 1; }
-
-CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
-
-if [[ -z "$CHANGED_FILES" ]]; then
-    echo "No changes detected between '$CURRENT_BRANCH' and '$release_BRANCH'."
-    exit 0
-fi
-
-latestdir=$(pwd)
-echo "Current dir is $latestdir"
-mkdir -p "$RELEASE_FOLDER"
-
-# Copy changed files to the new release folder
-echo "Copying changed files..."
-for file in $CHANGED_FILES; do
-    clean_path="${file#branches/}"  # Remove 'branches/' prefix from file path
-    mkdir -p "$RELEASE_FOLDER/$(dirname "$clean_path")"
-    cp "$file" "$RELEASE_FOLDER/$clean_path"
-    echo "Copied: $file -> $RELEASE_FOLDER/$clean_path"
+echo "Renaming items containing '$OLD_CHG' to use '$CHG'..."
+# Use find with -depth (to rename inner files/directories before their parent directories)
+find . -depth -name "*${OLD_CHG}*" -print0 | while IFS= read -r -d '' item; do
+    # Use sed to substitute OLD_CHG with the new CHG value.
+    new_item=$(echo "$item" | sed "s/${OLD_CHG}/${CHG}/g")
+    if [ "$item" != "$new_item" ]; then
+        echo "Renaming: $item -> $new_item"
+        mv "$item" "$new_item"
+    fi
 done
 
-echo "Release folder created successfully at $RELEASE_FOLDER with all changed files."
+echo "Renaming items containing '$OLD_REL' to use '$RELEASE_VERSION'..."
+find . -depth -name "*${OLD_REL}*" -print0 | while IFS= read -r -d '' item; do
+    # Replace all occurrences of OLD_REL with the new RELEASE_VERSION.
+    new_item=$(echo "$item" | sed "s/${OLD_REL}/${RELEASE_VERSION}/g")
+    if [ "$item" != "$new_item" ]; then
+        echo "Renaming: $item -> $new_item"
+        mv "$item" "$new_item"
+    fi
+done
 
-# Restructure unix
-BASE_unix_DIR="$RELEASE_FOLDER/unix"
-mkdir -p "$RELEASE_FOLDER/unix"
-find "$BASE_unix_DIR" -type f -exec mv {} "$RELEASE_FOLDER/unix/" \;
-find "$BASE_unix_DIR" -type d -empty -delete
-
-# Restructure autosys
-BASE_autosys_DIR="$RELEASE_FOLDER/autosys"
-mkdir -p "$RELEASE_FOLDER/autosys"
-find "$BASE_autosys_DIR" -type f -exec mv {} "$RELEASE_FOLDER/autosys/" \;
-find "$BASE_autosys_DIR" -type d -empty -delete
-
-# Move all files from subdirectories inside tdb_hist/ to tdb_hist/
-BASE_TDB_DIR="$RELEASE_FOLDER/database/tdb_hist"
-mkdir -p "$BASE_TDB_DIR"
-find "$BASE_TDB_DIR" -mindepth 2 -type f -exec mv {} "$BASE_TDB_DIR/" \;  # Move all files up to tdb_hist/
-find "$BASE_TDB_DIR" -mindepth 1 -type d -exec rm -rf {} +  # Remove ALL subdirectories
-
-echo "✅ All tdb_hist/ files moved directly under 'tdb_hist/' with no subdirectories."
-
-# Ensure new_release_folder.env exists
-touch "$RELEASE_FOLDER/new_release_folder.env"
-
-# Clean up 'branches' if it still exists inside the release folder
-if [[ -d "$RELEASE_FOLDER/branches" ]]; then
-    echo "Removing unnecessary 'branches/' folder..."
-    rm -rf "$RELEASE_FOLDER/branches"
-    echo "✅ 'branches/' folder removed successfully."
-fi
-
-echo "🎉 Process completed successfully!"
+echo "Renaming complete."
