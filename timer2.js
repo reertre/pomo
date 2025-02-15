@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Example DFS rename script
-# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION
+# DFS Rename Script
+# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION in file/directory names
 #
 
 # --- CONFIGURATION ---
@@ -21,7 +21,7 @@ fi
 dfs_rename() {
   local path="$1"
 
-  # 1) Recurse into subdirectories first (bottom-up)
+  # Recurse into subdirectories first (bottom-up)
   for entry in "$path"/*; do
     [ -e "$entry" ] || continue
     if [ -d "$entry" ]; then
@@ -29,7 +29,7 @@ dfs_rename() {
     fi
   done
 
-  # 2) Now rename items (files/directories) in this directory
+  # Rename items (files/directories) in the current directory
   for entry in "$path"/*; do
     [ -e "$entry" ] || continue
 
@@ -38,16 +38,14 @@ dfs_rename() {
     local dir
     dir="$(dirname "$entry")"
 
-    # --- DYNAMIC RENAMING LOGIC ---
-    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION.
-    # This logic ensures that every occurrence of the old values in the
-    # file or directory name is replaced by the new values.
+    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION
     local new_name="$name"
     new_name="${new_name//$OLD_CHG/$CHG}"
     new_name="${new_name//$OLD_RELEASE/$RELEASE_VERSION}"
 
     # Only rename if the name actually changed
     if [ "$new_name" != "$name" ]; then
+      echo "Renaming '$entry' to '$dir/$new_name'"
       mv "$entry" "$dir/$new_name"
     fi
   done
