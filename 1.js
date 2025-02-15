@@ -1,106 +1,58 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# DFS Rename Script (Fixed)
+# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION in file/directory names
+#
 
-CURRENT_BRANCH=$CI_DEFAULT_BRANCH
-TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-RELEASE_FOLDER="releases/release-$TIMESTAMP"
+set -e  # Exit immediately if a command exits with a non-zero status
 
-echo "Fetching all remote branches..."
-git fetch --all > /dev/null 2>&1 || { echo "Error fetching branches"; exit 1; }
+# --- CONFIGURATION ---
+RELEASE_VERSION="v15.0"
+CHG="CHG165890"
 
-echo "Detecting the release branch..."
-if [[ "$CURRENT_BRANCH" == release/* ]]; then
-    release_BRANCH="$CURRENT_BRANCH"
-else
-    release_BRANCH=$(git for-each-ref --sort=-committerdate refs/remotes/origin/release/* --format='%(refname:lstrip=3)' | head -n 1)
+OLD_CHG="CHG99999999999"
+OLD_RELEASE="release_99.9"
+
+# Ensure the required variables are set
+if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
+  echo "ERROR! Both CHG and RELEASE_VERSION must be defined."
+  exit 1
 fi
 
-echo "Detected release branch: $release_BRANCH"
+# --- DFS FUNCTION ---
+dfs_rename() {
+  local path="$1"
 
-if [[ -z "$release_BRANCH" ]]; then
-    echo "Error: No release branch found."
-    exit 1
-fi
-
-echo "Validating release branch '$release_BRANCH'..."
-if ! git ls-remote --heads origin "$release_BRANCH" > /dev/null 2>&1; then
-    echo "Error: Branch '$release_BRANCH' does not exist in the remote repository."
-    exit 1
-fi
-
-echo "Fetching the latest updates from '$release_BRANCH'..."
-git fetch origin "$release_BRANCH:$release_BRANCH" > /dev/null 2>&1 || { echo "Error fetching release branch"; exit 1; }
-
-echo "Comparing '$CURRENT_BRANCH' with '$release_BRANCH'..."
-git checkout "$CURRENT_BRANCH" > /dev/null 2>&1 || { echo "Error checking out current branch"; exit 1; }
-git checkout "$release_BRANCH" > /dev/null 2>&1 || { echo "Error checking out release branch"; exit 1; }
-
-# Get the list of changed files with full paths
-CHANGED_FILES=$(git diff --name-only origin/"$CURRENT_BRANCH" origin/"$release_BRANCH")
-
-if [[ -z "$CHANGED_FILES" ]]; then
-    echo "No changes detected between '$CURRENT_BRANCH' and '$release_BRANCH'."
-    exit 0
-fi
-
-echo "---------------------------------------------"
-echo "List of Changed Files:"
-echo "---------------------------------------------"
-for file in $CHANGED_FILES; do
-    echo "$(pwd)/$file"
-done
-echo "---------------------------------------------"
-
-# Debugging: Check if files exist in the working directory
-echo "Checking file existence..."
-for file in $CHANGED_FILES; do
-    if [[ ! -f "$file" ]]; then
-        echo "⚠️ Warning: File '$file' not found in the working directory!"
+  # 1) Recurse into subdirectories first (bottom-up)
+  for entry in "$path"/*; do
+    [ -e "$entry" ] || continue
+    if [ -d "$entry" ]; then
+      dfs_rename "$entry"
     fi
-done
-echo "---------------------------------------------"
+  done
 
-latestdir=$(pwd)
-NEW_RELEASE_FOLDER="$latestdir/$RELEASE_FOLDER"
-echo "Creating release folder at $NEW_RELEASE_FOLDER"
-mkdir -p "$NEW_RELEASE_FOLDER"
+  # 2) Now rename items (files/directories) in the current directory
+  for entry in "$path"/*; do
+    [ -e "$entry" ] || continue
 
-# Create subdirectories
-mkdir -p "$NEW_RELEASE_FOLDER/Unix"
-mkdir -p "$NEW_RELEASE_FOLDER/Autosys"
-mkdir -p "$NEW_RELEASE_FOLDER/database/Tdb_hist"
+    local name
+    name="$(basename "$entry")"
+    local dir
+    dir="$(dirname "$entry")"
 
-echo "---------------------------------------------"
-echo "Copying Changed Files to Release Folder..."
-echo "---------------------------------------------"
-for file in $CHANGED_FILES; do
-    if [[ -f "$file" ]]; then
-        if [[ "$file" == Unix/loader-bin/* || "$file" == Unix/svcflrtb-bin/* ]]; then
-            cp "$file" "$NEW_RELEASE_FOLDER/Unix/$(basename "$file")"
-            echo "✅ Copied: $file -> $NEW_RELEASE_FOLDER/Unix/$(basename "$file")"
+    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION
+    local new_name="$name"
+    new_name="${new_name//$OLD_CHG/$CHG}"
+    new_name="${new_name//$OLD_RELEASE/$RELEASE_VERSION}"
 
-        elif [[ "$file" == Autosys/*.jil ]]; then
-            cp "$file" "$NEW_RELEASE_FOLDER/Autosys/$(basename "$file")"
-            echo "✅ Copied: $file -> $NEW_RELEASE_FOLDER/Autosys/$(basename "$file")"
-
-        elif [[ "$file" == database/Tdb_hist/Packages/* || "$file" == database/Tdb_hist/Procedures/* || \
-                "$file" == database/Tdb_hist/Tables/* || "$file" == database/Tdb_hist/Upgrade/* || \
-                "$file" == database/Tdb_hist/Views/* ]]; then
-            cp "$file" "$NEW_RELEASE_FOLDER/database/Tdb_hist/$(basename "$file")"
-            echo "✅ Copied: $file -> $NEW_RELEASE_FOLDER/database/Tdb_hist/$(basename "$file")"
-
-        elif [[ "$file" == database/*.sql ]]; then
-            cp "$file" "$NEW_RELEASE_FOLDER/database/$(basename "$file")"
-            echo "✅ Copied: $file -> $NEW_RELEASE_FOLDER/database/$(basename "$file")"
-
-        else
-            echo "⏭️ Skipping unwanted file: $file"
-        fi
-    else
-        echo "⚠️ Skipping missing file: $file (Not found in working directory)"
+    # Only rename if the name actually changed
+    if [ "$new_name" != "$name" ]; then
+      echo "Renaming '$entry' to '$dir/$new_name'"
+      mv "$entry" "$dir/$new_name"
     fi
-done
+  done
+}
 
-echo "---------------------------------------------"
-echo "Release folder created successfully at $NEW_RELEASE_FOLDER with all selected files."
-echo "---------------------------------------------"
-echo "Thank you!"
+echo "Renaming items containing '$OLD_CHG' → '$CHG' and '$OLD_RELEASE' → '$RELEASE_VERSION' using DFS..."
+dfs_rename .
+echo "Renaming complete."
