@@ -1,23 +1,36 @@
-##########################################
-# 1) Flatten the "branches" folder
-##########################################
-if [[ -d "$NEW_RELEASE_FOLDER/branches" ]]; then
-    echo "Moving subfolders of 'branches' up one level..."
-    mv "$NEW_RELEASE_FOLDER/branches/"* "$NEW_RELEASE_FOLDER/" 2>/dev/null || true
-    rm -rf "$NEW_RELEASE_FOLDER/branches"
-    echo "✅ 'branches' folder flattened."
+#!/usr/bin/env bash
+
+# --- CONFIGURATION ---
+RELEASE_VERSION="3.0"
+CHG="CHG181272245"
+
+# If you need to replace some old values:
+OLD_CHG="CHG123456789"
+OLD_RELEASE="1.0"
+
+# Make sure the required variables are set
+if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
+  echo "ERROR! Both CHG and RELEASE_VERSION must be defined."
+  exit 1
 fi
 
-##########################################
-# 2) Rename "release_99.9" to "release99.9"
-##########################################
-# If your script creates $NEW_RELEASE_FOLDER named exactly "release_99.9"
-# then rename it. Adjust as needed if your folder name is different.
-if [[ "$NEW_RELEASE_FOLDER" == "release_99.9" && -d "$NEW_RELEASE_FOLDER" ]]; then
-    echo "Renaming '$NEW_RELEASE_FOLDER' to 'release99.9'..."
-    mv "$NEW_RELEASE_FOLDER" "release99.9"
-    NEW_RELEASE_FOLDER="release99.9"
-    echo "✅ Renamed folder to 'release99.9'"
-fi
+# --- RENAMING LOGIC ---
+# Depth-first rename of anything containing OLD_CHG --> CHG
+echo "Renaming items containing '$OLD_CHG' to '$CHG' (bottom-up)..."
+find . -depth -name "*${OLD_CHG}*" -exec bash -c '
+  for f in "$@"; do
+    new="${f//$OLD_CHG/$CHG}"
+    mv "$f" "$new"
+  done
+' _ {} +
 
-echo "✅ Restructuring completed successfully!"
+# Depth-first rename of anything containing OLD_RELEASE --> RELEASE_VERSION
+echo "Renaming items containing '$OLD_RELEASE' to '$RELEASE_VERSION' (bottom-up)..."
+find . -depth -name "*${OLD_RELEASE}*" -exec bash -c '
+  for f in "$@"; do
+    new="${f//$OLD_RELEASE/$RELEASE_VERSION}"
+    mv "$f" "$new"
+  done
+' _ {} +
+
+echo "Renaming complete."
