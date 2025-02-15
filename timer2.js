@@ -33,10 +33,15 @@ dfs_rename() {
   for entry in "$path"/*; do
     [ -e "$entry" ] || continue
 
-    local name="$(basename "$entry")"
-    local dir="$(dirname "$entry")"
+    local name
+    name="$(basename "$entry")"
+    local dir
+    dir="$(dirname "$entry")"
 
-    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION
+    # --- DYNAMIC RENAMING LOGIC ---
+    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION.
+    # This logic ensures that every occurrence of the old values in the
+    # file or directory name is replaced by the new values.
     local new_name="$name"
     new_name="${new_name//$OLD_CHG/$CHG}"
     new_name="${new_name//$OLD_RELEASE/$RELEASE_VERSION}"
