@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 #
-# DFS Rename Script
+# DFS Rename Script (Fixed)
 # Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION in file/directory names
 #
 
-# --- CONFIGURATION ---
-RELEASE_VERSION="3.0"
-CHG="CHG181272245"
+set -e  # Exit immediately if a command exits with a non-zero status
 
-OLD_CHG="CHG999999999"
+# --- CONFIGURATION ---
+RELEASE_VERSION="v15.0"
+CHG="CHG165890"
+
+OLD_CHG="CHG99999999999"
 OLD_RELEASE="release_99.9"
 
-# Make sure the required variables are set
+# Ensure the required variables are set
 if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
   echo "ERROR! Both CHG and RELEASE_VERSION must be defined."
   exit 1
@@ -21,7 +23,7 @@ fi
 dfs_rename() {
   local path="$1"
 
-  # Recurse into subdirectories first (bottom-up)
+  # 1) Recurse into subdirectories first (bottom-up)
   for entry in "$path"/*; do
     [ -e "$entry" ] || continue
     if [ -d "$entry" ]; then
@@ -29,7 +31,7 @@ dfs_rename() {
     fi
   done
 
-  # Rename items (files/directories) in the current directory
+  # 2) Now rename items (files/directories) in the current directory
   for entry in "$path"/*; do
     [ -e "$entry" ] || continue
 
