@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-#
-# DFS Rename Script (Fixed)
-# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION in file/directory names
-#
+set -e
 
-set -e  # Exit immediately if a command exits with a non-zero status
+echo "===== Alternative Rename Script Starting ====="
+echo "Working directory: $(pwd)"
+echo "Contents before rename:"
+ls -al
 
 # --- CONFIGURATION ---
 RELEASE_VERSION="v15.0"
@@ -13,46 +13,23 @@ CHG="CHG165890"
 OLD_CHG="CHG99999999999"
 OLD_RELEASE="release_99.9"
 
-# Ensure the required variables are set
-if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
-  echo "ERROR! Both CHG and RELEASE_VERSION must be defined."
-  exit 1
-fi
+echo "Configuration:"
+echo "  OLD_CHG:      $OLD_CHG  ->  CHG: $CHG"
+echo "  OLD_RELEASE:  $OLD_RELEASE  ->  RELEASE_VERSION: $RELEASE_VERSION"
 
-# --- DFS FUNCTION ---
-dfs_rename() {
-  local path="$1"
-
-  # 1) Recurse into subdirectories first (bottom-up)
-  for entry in "$path"/*; do
-    [ -e "$entry" ] || continue
-    if [ -d "$entry" ]; then
-      dfs_rename "$entry"
+# --- FIND-BASED DFS RENAME ---
+# The -depth option ensures that subdirectories are processed before their parent.
+find . -depth | while IFS= read -r file; do
+    # Substitute OLD_CHG with CHG and OLD_RELEASE with RELEASE_VERSION using sed
+    newfile=$(echo "$file" | sed -e "s/${OLD_CHG}/${CHG}/g" -e "s/${OLD_RELEASE}/${RELEASE_VERSION}/g")
+    
+    # Only rename if the filename has changed
+    if [ "$file" != "$newfile" ]; then
+        echo "Renaming: '$file' -> '$newfile'"
+        mv "$file" "$newfile"
     fi
-  done
+done
 
-  # 2) Now rename items (files/directories) in the current directory
-  for entry in "$path"/*; do
-    [ -e "$entry" ] || continue
-
-    local name
-    name="$(basename "$entry")"
-    local dir
-    dir="$(dirname "$entry")"
-
-    # Replace OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION
-    local new_name="$name"
-    new_name="${new_name//$OLD_CHG/$CHG}"
-    new_name="${new_name//$OLD_RELEASE/$RELEASE_VERSION}"
-
-    # Only rename if the name actually changed
-    if [ "$new_name" != "$name" ]; then
-      echo "Renaming '$entry' to '$dir/$new_name'"
-      mv "$entry" "$dir/$new_name"
-    fi
-  done
-}
-
-echo "Renaming items containing '$OLD_CHG' → '$CHG' and '$OLD_RELEASE' → '$RELEASE_VERSION' using DFS..."
-dfs_rename .
-echo "Renaming complete."
+echo "Contents after rename:"
+ls -al
+echo "===== Renaming Complete ====="
