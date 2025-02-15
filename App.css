@@ -1,36 +1,56 @@
 #!/usr/bin/env bash
+#
+# DFS-based renaming script
+#
+# This example renames anything containing:
+#   OLD_CHG   --> CHG
+#   OLD_REL   --> REL
+#
+# Usage:
+#   1) Make script executable: chmod +x folder_restructure.sh
+#   2) Run it: ./folder_restructure.sh
+#
 
-# --- CONFIGURATION ---
-RELEASE_VERSION="3.0"
-CHG="CHG181272245"
+OLD_CHG="CHG123"
+CHG="CHG999"
 
-# If you need to replace some old values:
-OLD_CHG="CHG123456789"
-OLD_RELEASE="1.0"
+OLD_REL="release_1.0"
+REL="release_2.0"
 
-# Make sure the required variables are set
-if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
-  echo "ERROR! Both CHG and RELEASE_VERSION must be defined."
-  exit 1
-fi
+# Recursive function for depth-first rename
+dfs_rename() {
+  local path="$1"
 
-# --- RENAMING LOGIC ---
-# Depth-first rename of anything containing OLD_CHG --> CHG
-echo "Renaming items containing '$OLD_CHG' to '$CHG' (bottom-up)..."
-find . -depth -name "*${OLD_CHG}*" -exec bash -c '
-  for f in "$@"; do
-    new="${f//$OLD_CHG/$CHG}"
-    mv "$f" "$new"
+  # 1) Recurse into subdirectories first
+  for entry in "$path"/*; do
+    # Skip if no files (or path is not a directory)
+    [ -e "$entry" ] || continue
+
+    # If it's a directory, recurse first (bottom-up)
+    if [ -d "$entry" ]; then
+      dfs_rename "$entry"
+    fi
   done
-' _ {} +
 
-# Depth-first rename of anything containing OLD_RELEASE --> RELEASE_VERSION
-echo "Renaming items containing '$OLD_RELEASE' to '$RELEASE_VERSION' (bottom-up)..."
-find . -depth -name "*${OLD_RELEASE}*" -exec bash -c '
-  for f in "$@"; do
-    new="${f//$OLD_RELEASE/$RELEASE_VERSION}"
-    mv "$f" "$new"
+  # 2) Rename items (both files and directories) in the current directory
+  #    AFTER children have been handled
+  for entry in "$path"/*; do
+    [ -e "$entry" ] || continue
+
+    local name="$(basename "$entry")"
+    local dir="$(dirname "$entry")"
+
+    # Perform string replacements on the filename
+    local new_name="${name//$OLD_CHG/$CHG}"
+    new_name="${new_name//$OLD_REL/$REL}"
+
+    if [ "$name" != "$new_name" ]; then
+      mv "$entry" "$dir/$new_name"
+    fi
   done
-' _ {} +
+}
 
-echo "Renaming complete."
+# Start DFS from current directory (.)
+dfs_rename "."
+
+echo "DFS rename complete."
