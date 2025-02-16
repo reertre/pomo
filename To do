@@ -1,37 +1,25 @@
 #!/usr/bin/env bash
 set -e
 
-# =====================
+# ===================================
 # Configuration
-# =====================
-OLD_CHG="CHG99999999999"
-NEW_CHG="CHG181272245"
+# ===================================
+OLD="99.9"
+NEW="40.5"
 
-OLD_VERSION="99.9"
-NEW_VERSION="v15.0"
+echo "Renaming all occurrences of '$OLD' to '$NEW' in all folders and files..."
 
-echo "Renaming occurrences of:"
-echo "  '$OLD_CHG' → '$NEW_CHG'"
-echo "  '$OLD_VERSION' → '$NEW_VERSION'"
-echo
-
-# -depth ensures we rename children before parent directories.
+# Use depth-first search so we rename children before parents.
 find . -depth | while IFS= read -r oldpath; do
-  # Build the new path by replacing both old patterns with the new ones
-  newpath="$oldpath"
+  # Build the new path by replacing the old pattern with the new pattern
+  newpath=$(echo "$oldpath" | sed "s/$OLD/$NEW/g")
 
-  # Replace CHG99999999999 → CHG181272245
-  newpath="${newpath//$OLD_CHG/$NEW_CHG}"
-
-  # Replace 99.9 → v15.0
-  newpath="${newpath//$OLD_VERSION/$NEW_VERSION}"
-
-  # Only rename if something changed
+  # Only attempt to rename if the path has changed
   if [ "$oldpath" != "$newpath" ]; then
     echo "Renaming: '$oldpath' -> '$newpath'"
-    mv "$oldpath" "$newpath"
+    # Suppress errors and ignore failure using 2>/dev/null || true
+    mv "$oldpath" "$newpath" 2>/dev/null || true
   fi
 done
 
-echo
-echo "All renames complete!"
+echo "Renaming complete!"
