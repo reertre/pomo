@@ -1,43 +1,60 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# rename_files_and_folders_separately.sh
+#
+# 1) Renames files (only)
+# 2) Renames directories (only)
+#
+# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION.
+
 set -e
 
-# Load configuration variables from config.cfg.
-CONFIG_FILE="config.cfg"
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "Error: $CONFIG_FILE not found!"
-  exit 1
-fi
-source "$CONFIG_FILE"
+echo "===== Starting Separate Renames ====="
+echo "Current directory: $(pwd)"
+echo "Contents before rename:"
+ls -al
 
-# Ensure the required variables are set.
-if [ -z "$CHG" ] || [ -z "$RELEASE_VERSION" ]; then
-    echo "Error: Both CHG and RELEASE_VERSION must be defined in config.cfg."
-    exit 1
-fi
-
-# Define the original (old) values that are in the existing folder structure.
+# --- CONFIGURATION ---
 OLD_CHG="CHG99999999999"
-OLD_REL="99.9"
+CHG="CHG165890"
 
-echo "Renaming items containing '$OLD_CHG' to use '$CHG'..."
-# Use find with -depth (to rename inner files/directories before their parent directories)
-find . -depth -name "*${OLD_CHG}*" -print0 | while IFS= read -r -d '' item; do
-    # Use sed to substitute OLD_CHG with the new CHG value.
-    new_item=$(echo "$item" | sed "s/${OLD_CHG}/${CHG}/g")
-    if [ "$item" != "$new_item" ]; then
-        echo "Renaming: $item -> $new_item"
-        mv "$item" "$new_item"
-    fi
+OLD_RELEASE="release_99.9"
+RELEASE_VERSION="v15.0"
+
+echo "Configuration:"
+echo "  OLD_CHG=$OLD_CHG  ->  CHG=$CHG"
+echo "  OLD_RELEASE=$OLD_RELEASE  ->  RELEASE_VERSION=$RELEASE_VERSION"
+
+# -----------------------------------------------------------------------------
+# 1) Rename Files
+# -----------------------------------------------------------------------------
+echo "----- Renaming Files Only -----"
+find . -type f -depth | while IFS= read -r file; do
+  # Generate the new file path by replacing the old patterns
+  newfile="$(echo "$file" | sed -e "s/${OLD_CHG}/${CHG}/g" -e "s/${OLD_RELEASE}/${RELEASE_VERSION}/g")"
+
+  # Only rename if it actually changed
+  if [ "$file" != "$newfile" ]; then
+    echo "Renaming file: '$file' -> '$newfile'"
+    mv "$file" "$newfile"
+  fi
 done
 
-echo "Renaming items containing '$OLD_REL' to use '$RELEASE_VERSION'..."
-find . -depth -name "*${OLD_REL}*" -print0 | while IFS= read -r -d '' item; do
-    # Replace all occurrences of OLD_REL with the new RELEASE_VERSION.
-    new_item=$(echo "$item" | sed "s/${OLD_REL}/${RELEASE_VERSION}/g")
-    if [ "$item" != "$new_item" ]; then
-        echo "Renaming: $item -> $new_item"
-        mv "$item" "$new_item"
-    fi
+# -----------------------------------------------------------------------------
+# 2) Rename Directories
+# -----------------------------------------------------------------------------
+echo "----- Renaming Directories Only -----"
+# We do directories in a separate pass. Using -depth ensures we rename
+# deeper directories before their parents (avoiding conflicts).
+find . -type d -depth | while IFS= read -r dir; do
+  newdir="$(echo "$dir" | sed -e "s/${OLD_CHG}/${CHG}/g" -e "s/${OLD_RELEASE}/${RELEASE_VERSION}/g")"
+
+  if [ "$dir" != "$newdir" ]; then
+    echo "Renaming directory: '$dir' -> '$newdir'"
+    mv "$dir" "$newdir"
+  fi
 done
 
-echo "Renaming complete."
+echo "===== Renaming Complete ====="
+echo "Contents after rename:"
+ls -al
