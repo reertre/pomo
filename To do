@@ -1,60 +1,37 @@
 #!/usr/bin/env bash
-#
-# rename_files_and_folders_separately.sh
-#
-# 1) Renames files (only)
-# 2) Renames directories (only)
-#
-# Replaces OLD_CHG with CHG, and OLD_RELEASE with RELEASE_VERSION.
-
 set -e
 
-echo "===== Starting Separate Renames ====="
-echo "Current directory: $(pwd)"
-echo "Contents before rename:"
-ls -al
-
-# --- CONFIGURATION ---
+# =====================
+# Configuration
+# =====================
 OLD_CHG="CHG99999999999"
-CHG="CHG165890"
+NEW_CHG="CHG181272245"
 
-OLD_RELEASE="release_99.9"
-RELEASE_VERSION="v15.0"
+OLD_VERSION="99.9"
+NEW_VERSION="v15.0"
 
-echo "Configuration:"
-echo "  OLD_CHG=$OLD_CHG  ->  CHG=$CHG"
-echo "  OLD_RELEASE=$OLD_RELEASE  ->  RELEASE_VERSION=$RELEASE_VERSION"
+echo "Renaming occurrences of:"
+echo "  '$OLD_CHG' → '$NEW_CHG'"
+echo "  '$OLD_VERSION' → '$NEW_VERSION'"
+echo
 
-# -----------------------------------------------------------------------------
-# 1) Rename Files
-# -----------------------------------------------------------------------------
-echo "----- Renaming Files Only -----"
-find . -type f -depth | while IFS= read -r file; do
-  # Generate the new file path by replacing the old patterns
-  newfile="$(echo "$file" | sed -e "s/${OLD_CHG}/${CHG}/g" -e "s/${OLD_RELEASE}/${RELEASE_VERSION}/g")"
+# -depth ensures we rename children before parent directories.
+find . -depth | while IFS= read -r oldpath; do
+  # Build the new path by replacing both old patterns with the new ones
+  newpath="$oldpath"
 
-  # Only rename if it actually changed
-  if [ "$file" != "$newfile" ]; then
-    echo "Renaming file: '$file' -> '$newfile'"
-    mv "$file" "$newfile"
+  # Replace CHG99999999999 → CHG181272245
+  newpath="${newpath//$OLD_CHG/$NEW_CHG}"
+
+  # Replace 99.9 → v15.0
+  newpath="${newpath//$OLD_VERSION/$NEW_VERSION}"
+
+  # Only rename if something changed
+  if [ "$oldpath" != "$newpath" ]; then
+    echo "Renaming: '$oldpath' -> '$newpath'"
+    mv "$oldpath" "$newpath"
   fi
 done
 
-# -----------------------------------------------------------------------------
-# 2) Rename Directories
-# -----------------------------------------------------------------------------
-echo "----- Renaming Directories Only -----"
-# We do directories in a separate pass. Using -depth ensures we rename
-# deeper directories before their parents (avoiding conflicts).
-find . -type d -depth | while IFS= read -r dir; do
-  newdir="$(echo "$dir" | sed -e "s/${OLD_CHG}/${CHG}/g" -e "s/${OLD_RELEASE}/${RELEASE_VERSION}/g")"
-
-  if [ "$dir" != "$newdir" ]; then
-    echo "Renaming directory: '$dir' -> '$newdir'"
-    mv "$dir" "$newdir"
-  fi
-done
-
-echo "===== Renaming Complete ====="
-echo "Contents after rename:"
-ls -al
+echo
+echo "All renames complete!"
