@@ -1,35 +1,45 @@
 #!/usr/bin/env bash
 set -e
 
-# Assuming you already have:
-#   login_tdb_hist=...
-# from your environment or .devprofile
+# 1) Collect all SQL files matching FINNRR_*.sql
+#    (i.e., FINNRR_<jiranumber>_<executionorder>.sql)
+files=(FINNRR_*_*.sql)
 
-# 1) Collect BOTH .dat and .dar files that match FINRR_7483_*.dat or FINRR_7483_*.dar
-files=(FINRR_7483_*.dat FINRR_7483_*.dar)
-
-# 2) Check if we found any files
+# 2) If no matching files exist, handle it gracefully
 if [ ${#files[@]} -eq 0 ] || [ -z "${files[0]}" ]; then
-    echo "No FINRR_7483_*.dat or .dar files found!"
-    exit 1
+    echo "No FINNRR_<jiranumber>_<order>.sql files found!"
+    exit 0  # or exit 1, depending on your preference
 fi
 
-# 3) Extract the numeric portion after FINRR_7483_ and before the extension
-#    Then sort numerically.
+# 3) Extract the <executionorder> part after the second underscore and before .sql
+#    Then sort the files numerically by that execution order.
 sorted_files=($(
     for f in "${files[@]}"; do
-        # If the file doesn't actually exist (e.g. the pattern expands literally), skip
-        [ -e "$f" ] || continue
-
-        # Extract the number after the second underscore and before .dat or .dar
-        # e.g., FINRR_7483_1.dat -> "1" or FINRR_7483_2.dar -> "2"
-        order=$(echo "$f" | sed -E 's/.*_([0-9]+)\.(dat|dar)/\1/')
+        [ -f "$f" ] || continue  # skip if somehow it's not a file
+        # Example filename: FINNRR_12345_7.sql
+        # We want "7" as the order
+        order=$(echo "$f" | sed -E 's/FINNRR_[^_]+_([0-9]+)\.sql/\1/')
         echo "$order $f"
     done | sort -n | awk '{print $2}'
 ))
 
-# 4) Loop through sorted files and call sqldr
-for dat_file in "${sorted_files[@]}"; do
-    echo "Loading $dat_file..."
-    sqldr "$login_tdb_hist" control="$dat_file"
+# 4) Execute each SQL file in ascending order
+echo "Execution order:"
+for sql_file in "${sorted_files[@]}"; do
+    echo "  $sql_file"
 done
+
+# Example of running them via sqlplus
+# (Assuming you have a variable like $login_tdb_hist for your credentials)
+sqlplus -s "$login_tdb_hist" <<EOF
+set echo on time on timing on trimspool on scan off pagesize 0 linesize 1000
+
+-- Optional spool if you want to log the output
+spool FINNRR_execution.log
+
+-- Loop through each file in sorted order
+$(for sql_file in "${sorted_files[@]}"; do echo "@$sql_file"; done)
+
+spool off
+exit
+EOF
