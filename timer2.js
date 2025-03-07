@@ -1,45 +1,53 @@
 #!/usr/bin/env bash
-set -e
 
-# 1) Collect all SQL files matching FINNRR_*.sql
-#    (i.e., FINNRR_<jiranumber>_<executionorder>.sql)
-files=(FINNRR_*_*.sql)
+# 1) Update PATH, source devprofile if needed
+export PATH=/flex_data/mfr_ft/loader/bin:$PATH
+source ../devprofile
 
-# 2) If no matching files exist, handle it gracefully
-if [ ${#files[@]} -eq 0 ] || [ -z "${files[0]}" ]; then
-    echo "No FINNRR_<jiranumber>_<order>.sql files found!"
-    exit 0  # or exit 1, depending on your preference
+# 2) Source your parameter file (sequence.sh)
+#   Because 31.0_tdb_hist_1.sh is in tdb_hist/ and sequence.sh is in database/,
+#   we go one directory up (..) to find it.
+source ../sequence.sh
+
+# 3) Derive a prefix from this script’s filename (optional)
+prefix="$(basename "$0" .sh)"
+
+# 4) Define your standard start/end scripts
+std_start="31.0_tdb_hist_1.sql"
+std_end="31.0_tdb_hist_2.sql"
+
+# 5) Check that they exist
+if [ ! -f "$std_start" ]; then
+  echo "Standard start script $std_start not found" >&2
 fi
 
-# 3) Extract the <executionorder> part after the second underscore and before .sql
-#    Then sort the files numerically by that execution order.
-sorted_files=($(
-    for f in "${files[@]}"; do
-        [ -f "$f" ] || continue  # skip if somehow it's not a file
-        # Example filename: FINNRR_12345_7.sql
-        # We want "7" as the order
-        order=$(echo "$f" | sed -E 's/FINNRR_[^_]+_([0-9]+)\.sql/\1/')
-        echo "$order $f"
-    done | sort -n | awk '{print $2}'
-))
+if [ ! -f "$std_end" ]; then
+  echo "Standard end script $std_end not found" >&2
+fi
 
-# 4) Execute each SQL file in ascending order
+# 6) Print the execution order
 echo "Execution order:"
-for sql_file in "${sorted_files[@]}"; do
-    echo "  $sql_file"
+echo "  $std_start"
+for file in "${tdb_hist[@]}"; do
+  echo "  $file"
 done
+echo "  $std_end"
 
-# Example of running them via sqlplus
-# (Assuming you have a variable like $login_tdb_hist for your credentials)
-sqlplus -s "$login_tdb_hist" <<EOF
-set echo on time on timing on trimspool on scan off pagesize 0 linesize 1000
+# 7) Run everything in one SQL*Plus session
+sqlplus -s login_tdb_hist <<EOF
+  SET echo on timing on trimspool on scan off pagesize 0 linesize 1000
+  SPOOL ${prefix}.log
 
--- Optional spool if you want to log the output
-spool FINNRR_execution.log
+  PROMPT Executing ${std_start}
+  @${std_start}
 
--- Loop through each file in sorted order
-$(for sql_file in "${sorted_files[@]}"; do echo "@$sql_file"; done)
+$( for file in "${tdb_hist[@]}"; do
+    echo "  PROMPT Executing $file"
+    echo "  @$file"
+done )
 
-spool off
-exit
+  PROMPT Executing ${std_end}
+  @${std_end}
+
+  SPOOL OFF
 EOF
