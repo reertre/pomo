@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-set -e
 
-# ===================================
-# Configuration
-# ===================================
-OLD="99.9"
-NEW="40.5"
+echo "Exporting Autosys changes..."
+export SERVER1=autosys-prdln-cli.barcapint.com:8080
+export SERVER2=autosys-prdln-cli.barcapint.com:8080
 
-echo "Renaming all occurrences of '$OLD' to '$NEW' in all folders and files..."
+# 1) Source the parameter file so we can read the autosys array
+source ../sequence.sh  # Adjust path as needed
 
-# Use depth-first search so we rename children before parents.
-find . -depth | while IFS= read -r oldpath; do
-  # Build the new path by replacing the old pattern with the new pattern
-  newpath=$(echo "$oldpath" | sed "s/$OLD/$NEW/g")
+echo "Autosys jobs insertion/updation/deletion for release on P15 START"
 
-  # Only attempt to rename if the path has changed
-  if [ "$oldpath" != "$newpath" ]; then
-    echo "Renaming: '$oldpath' -> '$newpath'"
-    # Suppress errors and ignore failure using 2>/dev/null || true
-    mv "$oldpath" "$newpath" 2>/dev/null || true
-  fi
+# 2) Loop over each .jil file in the autosys array
+for job_file in "${autosys[@]}"; do
+
+  # Create a .log file name by replacing .jil with .log
+  # e.g., FINRR_56781_cetb_t360_feeds_1.jil -> FINRR_56781_cetb_t360_feeds_1.log
+  log_file="${job_file%.jil}.log"
+
+  echo "Loading $job_file -> $log_file"
+
+  # Run the jil command, redirecting output to the .log file
+  jil < "$job_file" > "$log_file" 2>&1
 done
 
-echo "Renaming complete!"
+echo "Autosys jobs insertion/updation/deletion for release on P15 END"
