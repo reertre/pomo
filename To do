@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+# sequence.sh - parameter file holding the tdb_hist array
+
+tdb_hist=(
+  "FINRR_55463_LNO_DEAL_1.sql"
+  "FINRR_56781_TEIB_RADIAL_CETB_2.sql"
+  "FINRR_56781_FR_SOURCE_FILE_3.sql"
+)
+
+
+
+
+
+
+
+#!/usr/bin/env bash
 # 31.0_tdb_hist_1.sh
 # Executes standard start script, all SQL files from tdb_hist array, then an end script.
 
