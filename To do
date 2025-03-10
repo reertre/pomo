@@ -1,25 +1,62 @@
 #!/usr/bin/env bash
+# 31.0_tdb_hist_1.sh
+# Executes standard start script, all SQL files from tdb_hist array, then an end script.
 
-echo "Exporting Autosys changes..."
-export SERVER1=autosys-prdln-cli.barcapint.com:8080
-export SERVER2=autosys-prdln-cli.barcapint.com:8080
+# 1) Environment setup
+export PATH=/flex_data/mfr_ft/loader/bin:$PATH
+source ../devprofile 2>/dev/null || echo "Note: devprofile not found or optional"
 
-# 1) Source the parameter file so we can read the autosys array
-source ../sequence.sh  # Adjust path as needed
+# 2) Source the parameter file (sequence.sh) to load tdb_hist array
+if [ -f "../sequence.sh" ]; then
+  source ../sequence.sh
+else
+  echo "ERROR: sequence.sh not found in parent directory!"
+  exit 1
+fi
 
-echo "Autosys jobs insertion/updation/deletion for release on P15 START"
+# 3) Derive a prefix from this script's filename for spool/log
+prefix="$(basename "$0" .sh)"
 
-# 2) Loop over each .jil file in the autosys array
-for job_file in "${autosys[@]}"; do
+# 4) Define your standard start and end .sql scripts (adjust names as needed)
+#    For example: "31.0_tdb_hist_1.sql" and "31.0_tdb_hist_2.sql"
+std_start="${prefix}_tbl_hist_1.sql"
+std_end="${prefix}_tbl_hist_2.sql"
 
-  # Create a .log file name by replacing .jil with .log
-  # e.g., FINRR_56781_cetb_t360_feeds_1.jil -> FINRR_56781_cetb_t360_feeds_1.log
-  log_file="${job_file%.jil}.log"
+# 5) Check existence of start/end scripts
+if [ ! -f "$std_start" ]; then
+  echo "ERROR: Standard start script '$std_start' not found!" >&2
+  exit 1
+fi
+if [ ! -f "$std_end" ]; then
+  echo "ERROR: Standard end script '$std_end' not found!" >&2
+  exit 1
+fi
 
-  echo "Loading $job_file -> $log_file"
-
-  # Run the jil command, redirecting output to the .log file
-  jil < "$job_file" > "$log_file" 2>&1
+# 6) Print the execution order
+echo "Execution order:"
+echo "  $std_start"
+for file in "${tdb_hist[@]}"; do
+  echo "  $file"
 done
+echo "  $std_end"
 
-echo "Autosys jobs insertion/updation/deletion for release on P15 END"
+# 7) Run everything in one SQL*Plus session
+sqlplus -s login_tdb_hist <<EOF
+  SET echo on timing on trimspool on scan off pagesize 0 linesize 1000
+  SPOOL ${prefix}.log
+
+  PROMPT Executing $std_start
+  @$std_start
+
+$( for file in "${tdb_hist[@]}"; do
+    echo "PROMPT Executing $file"
+    echo "@$file"
+done )
+
+  PROMPT Executing $std_end
+  @$std_end
+
+  SPOOL OFF
+EOF
+
+echo "All scripts executed. See ${prefix}.log for details."
