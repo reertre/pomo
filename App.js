@@ -1,34 +1,21 @@
 #!/bin/bash
 
 FILE="list.txt"
+declare -a tdbhist_files
 
-# Read each line from the file
+# Read each line from the file and collect Tdbhist files
 while IFS= read -r line; do
     # Skip blank lines
-    if [ -z "$line" ]; then
-        continue
-    fi
+    [ -z "$line" ] && continue
 
-    # Check if the line starts with "Tdbhist:" using pattern matching
+    # If the line starts with "Tdbhist:" then split and save the file name
     if [[ $line == Tdbhist:* ]]; then
-        # Split the line by colon into prefix, type, and sql_file
         IFS=':' read -r prefix type sql_file <<< "$line"
-        echo "Matched line. Processing SQL file: $sql_file"
-        
-        # Replace the following command with your actual SQL execution command.
-        # For example, for MySQL:
-        # mysql -u username -p database < "$sql_file"
-        #
-        # Or for sqlplus (Oracle):
-        # sqlplus -S /nolog <<EOF
-        # CONNECT your_username/your_password
-        # @$sql_file
-        # EXIT
-        # EOF
-        
-    else
-        # For lines that do not match "Tdbhist:" pattern
-        echo "Unmatched line: $line"
+        tdbhist_files+=("$sql_file")
     fi
-
 done < "$FILE"
+
+# Now, outside the if statements, print all collected Tdbhist file names
+for file in "${tdbhist_files[@]}"; do
+    echo "$file"
+done
