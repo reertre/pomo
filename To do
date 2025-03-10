@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# sequence.# tdb_hist_files.txt
-# List of SQL files to be executed.
-# Lines starting with '#' are ignored.
-
-FINRR_55463_LNO_DEAL_1.sql
-FINRR_56781_TEIB_RADIAL_CETB_2.sql
-FINRR_56781_FR_SOURCE_FILE_#!/usr/bin/env bash
 # 31.0_tdb_hist_1.sh
 # This script reads a parameter file (tdb_hist_files.txt) to get the list of SQL file names and executes each one.
 
@@ -40,7 +33,15 @@ EOF
   fi
 done
 
-echo "All files executed."
+echo "All # tdb_hist_files.txt
+
+
+# List of SQL files to be executed.
+# Lines starting with '#' are ignored.
+
+FINRR_55463_LNO_DEAL_1.sql
+FINRR_56781_TEIB_RADIAL_CETB_2.sql
+FINRR_56781_FR_SOURCE_FILE_3.sql
 
 
 
@@ -49,99 +50,3 @@ echo "All files executed."
 
 
 
-
-
-
-
-
-
-# Optionally, you can define other functions for other sets of parameters
-# function load_fdm_params {
-#   fdm=( "somefile.sql" "another.#!/usr/bin/env bash
-
-# 1) Source the parameter file
-source ../sequence.sh || { echo "sequence.sh not found"; exit 1; }
-
-# 2) Call the function to load the array
-load_tdb_hist_params
-
-# 3) Now tdb_hist is defined in this shell
-echo "tdb_hist array: ${tdb_hist[@]}"
-
-# 4) Use the array
-for file in "${tdb_hist[@]}"; do
-  echo "Processing $file..."
-  # ...
-done
-
-
-
-
-
-
-
-
-
-
-#!/usr/bin/env bash
-# 31.0_tdb_hist_1.sh
-# Executes standard start script, all SQL files from tdb_hist array, then an end script.
-
-# 1) Environment setup
-export PATH=/flex_data/mfr_ft/loader/bin:$PATH
-source ../devprofile 2>/dev/null || echo "Note: devprofile not found or optional"
-
-# 2) Source the parameter file (sequence.sh) to load tdb_hist array
-if [ -f "../sequence.sh" ]; then
-  source ../sequence.sh
-else
-  echo "ERROR: sequence.sh not found in parent directory!"
-  exit 1
-fi
-
-# 3) Derive a prefix from this script's filename for spool/log
-prefix="$(basename "$0" .sh)"
-
-# 4) Define your standard start and end .sql scripts (adjust names as needed)
-#    For example: "31.0_tdb_hist_1.sql" and "31.0_tdb_hist_2.sql"
-std_start="${prefix}_tbl_hist_1.sql"
-std_end="${prefix}_tbl_hist_2.sql"
-
-# 5) Check existence of start/end scripts
-if [ ! -f "$std_start" ]; then
-  echo "ERROR: Standard start script '$std_start' not found!" >&2
-  exit 1
-fi
-if [ ! -f "$std_end" ]; then
-  echo "ERROR: Standard end script '$std_end' not found!" >&2
-  exit 1
-fi
-
-# 6) Print the execution order
-echo "Execution order:"
-echo "  $std_start"
-for file in "${tdb_hist[@]}"; do
-  echo "  $file"
-done
-echo "  $std_end"
-
-# 7) Run everything in one SQL*Plus session
-sqlplus -s login_tdb_hist <<EOF
-  SET echo on timing on trimspool on scan off pagesize 0 linesize 1000
-  SPOOL ${prefix}.log
-
-  PROMPT Executing $std_start
-  @$std_start
-
-$( for file in "${tdb_hist[@]}"; do
-    echo "PROMPT Executing $file"
-    echo "@$file"
-done )
-
-  PROMPT Executing $std_end
-  @$std_end
-
-  SPOOL OFF
-EOF
-
-echo "All scripts executed. See ${prefix}.log for details."
