@@ -1,11 +1,36 @@
 #!/usr/bin/env bash
-# sequence.sh - parameter file holding the tdb_hist array
+# sequence.sh
 
-tdb_hist=(
-  "FINRR_55463_LNO_DEAL_1.sql"
-  "FINRR_56781_TEIB_RADIAL_CETB_2.sql"
-  "FINRR_56781_FR_SOURCE_FILE_3.sql"
-)
+# A function that, when called, defines the tdb_hist array
+function load_tdb_hist_params {
+  tdb_hist=(
+    "FINRR_55463_LNO_DEAL_1.sql"
+    "FINRR_56781_TEIB_RADIAL_CETB_2.sql"
+    "FINRR_56781_FR_SOURCE_FILE_3.sql"
+  )
+}
+
+# Optionally, you can define other functions for other sets of parameters
+# function load_fdm_params {
+#   fdm=( "somefile.sql" "another.#!/usr/bin/env bash
+
+# 1) Source the parameter file
+source ../sequence.sh || { echo "sequence.sh not found"; exit 1; }
+
+# 2) Call the function to load the array
+load_tdb_hist_params
+
+# 3) Now tdb_hist is defined in this shell
+echo "tdb_hist array: ${tdb_hist[@]}"
+
+# 4) Use the array
+for file in "${tdb_hist[@]}"; do
+  echo "Processing $file..."
+  # ...
+done
+
+
+
 
 
 
