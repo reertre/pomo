@@ -1,52 +1,99 @@
 #!/usr/bin/env bash
-# 31.0_tdb_hist_1.sh
-# This script reads a parameter file (tdb_hist_files.txt) to get the list of SQL file names and executes each one.
 
-# Define the parameter file (assumed to be in the current working directory)
-param_file="tdb_hist_files.txt"
+###############################################################################
+# ADD THESE LINES AT THE TOP (DO NOT MODIFY ANYTHING BELOW THIS MARK)
+###############################################################################
 
-# Check if the parameter file exists
-if [[ ! -f "$param_file" ]]; then
-  echo "ERROR: Parameter file '$param_file' not found!"
-  exit 1
+# Define the target scheme you want (for this script, TDB_HIST)
+target_scheme="TDB_HIST"
+
+# Define the folder where the parameter text file is located and the file name.
+param_dir="params"
+param_file="${param_dir}/all_files.txt"
+
+# Verify the parameter file exists.
+if [ -f "$param_file" ]; then
+  # Use awk to extract lines belonging to the target scheme.
+  # This awk script does the following:
+  #  - When it sees a line that starts with "# Scheme:", it sets flag to 1 if the scheme matches target_scheme, or 0 otherwise.
+  #  - It then prints non-empty lines only when flag==1.
+  mapfile -t scheme_lines < <(awk -v target="$target_scheme" '
+    BEGIN { flag=0 }
+    /^# Scheme:/ {
+      if ($0 == "# Scheme: " target) { flag=1; next }
+      else { flag=0 }
+    }
+    flag && NF { print }
+  ' "$param_file")
+else
+  echo "WARNING: Parameter file '$param_file' not found or empty"
+  scheme_lines=()
 fi
 
-# Use awk to filter out commented (#) or blank lines and load the file names into an array.
-# The awk command '/^[^#]/ && NF' prints lines that do not start with '#' and are not empty.
-mapfile -t tdb_hist < <(awk '/^[^#]/ && NF' "$param_file")
+# Initialize empty arrays for .dat and .sql files.
+dat_array=()
+sql_array=()
 
-# Debug: Output the loaded array of file names.
-echo "Loaded file list: ${tdb_hist[@]}"
-
-# Loop over each file in the array and execute it.
-for file in "${tdb_hist[@]}"; do
-  echo "Executing $file..."
-  if [[ -f "$file" ]]; then
-    # Example execution using SQL*Plus:
-    sqlplus -s login_tdb_hist <<EOF
-@$file
-EOF
-    # If instead these files are shell scripts, you could run:
-    # bash "$file"
-  else
-    echo "ERROR: File '$file' not found!"
+# Loop through each line extracted for the target scheme
+for line in "${scheme_lines[@]}"; do
+  # Based on the file extension, add to the appropriate array.
+  if [[ $line == *.dat ]]; then
+    dat_array+=( "$line" )
+  elif [[ $line == *.sql ]]; then
+    sql_array+=( "$line" )
   fi
 done
 
-echo "All # tdb_hist_files.txt
+# Join each array into a space-separated string.
+sorted_dat_files="${dat_array[*]}"
+sorted_std_files="${sql_array[*]}"
 
+###############################################################################
+# DO NOT CHANGE ANYTHING BELOW THIS LINE
+###############################################################################
 
-# List of SQL files to be executed.
-# Lines starting with '#' are ignored.
+export PATH=/flex_data/mfr_ft/loader/bin:$PATH
+source ../devprofile
 
-FINRR_55463_LNO_DEAL_1.sql
-FINRR_56781_TEIB_RADIAL_CETB_2.sql
-FINRR_56781_FR_SOURCE_FILE_3.sql
+prefix="$(basename "$0" .sh)"
+std_start="${prefix}_tbl_hist_1.sql"
+std_end="${prefix}_tbl_hist_2.sql"
 
+if [ ! -f "$std_start" ]; then
+  echo "Standard start script $std_start not found" >&2
+  exit 1
+fi
 
+if [ ! -f "$std_end" ]; then
+  echo "Standard end script $std_end not found" >&2
+  exit 1
+fi
 
+echo "Execution order:"
+echo "  $std_start"
 
+# Loop through sorted_dat_files and call sqlldr for each .dat file.
+for file in $sorted_dat_files; do
+  echo "Loading $file..."
+  sqlldr login_tdb_hist control="$file"
+done
 
+echo "  $std_end"
 
+sqlplus -s login_tdb_hist <<EOF
+  SET echo on timing on trimspool on scan off pagesize 0 linesize 1000
+  SPOOL ${prefix}.log
 
+  PROMPT Executing $std_start
+  @$std_start
 
+$( for file in $sorted_std_files; do
+    echo "PROMPT Executing $file"
+    echo "@$file"
+done )
+
+  PROMPT Executing $std_end
+  @$std_end
+
+  SPOOL OFF
+EOF
