@@ -1,14 +1,59 @@
 #!/usr/bin/env bash
-# sequence.sh
+# sequence.# tdb_hist_files.txt
+# List of SQL files to be executed.
+# Lines starting with '#' are ignored.
 
-# A function that, when called, defines the tdb_hist array
-function load_tdb_hist_params {
-  tdb_hist=(
-    "FINRR_55463_LNO_DEAL_1.sql"
-    "FINRR_56781_TEIB_RADIAL_CETB_2.sql"
-    "FINRR_56781_FR_SOURCE_FILE_3.sql"
-  )
-}
+FINRR_55463_LNO_DEAL_1.sql
+FINRR_56781_TEIB_RADIAL_CETB_2.sql
+FINRR_56781_FR_SOURCE_FILE_#!/usr/bin/env bash
+# 31.0_tdb_hist_1.sh
+# This script reads a parameter file (tdb_hist_files.txt) to get the list of SQL file names and executes each one.
+
+# Define the parameter file (assumed to be in the current working directory)
+param_file="tdb_hist_files.txt"
+
+# Check if the parameter file exists
+if [[ ! -f "$param_file" ]]; then
+  echo "ERROR: Parameter file '$param_file' not found!"
+  exit 1
+fi
+
+# Use awk to filter out commented (#) or blank lines and load the file names into an array.
+# The awk command '/^[^#]/ && NF' prints lines that do not start with '#' and are not empty.
+mapfile -t tdb_hist < <(awk '/^[^#]/ && NF' "$param_file")
+
+# Debug: Output the loaded array of file names.
+echo "Loaded file list: ${tdb_hist[@]}"
+
+# Loop over each file in the array and execute it.
+for file in "${tdb_hist[@]}"; do
+  echo "Executing $file..."
+  if [[ -f "$file" ]]; then
+    # Example execution using SQL*Plus:
+    sqlplus -s login_tdb_hist <<EOF
+@$file
+EOF
+    # If instead these files are shell scripts, you could run:
+    # bash "$file"
+  else
+    echo "ERROR: File '$file' not found!"
+  fi
+done
+
+echo "All files executed."
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Optionally, you can define other functions for other sets of parameters
 # function load_fdm_params {
